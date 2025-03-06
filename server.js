@@ -1,8 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const phoneAuthRoutes = require('./routes/phoneAuthRoutes');
-
+const veggieRoutes = require('./routes/veggieroutes');
+const dishIngredientsRoutes = require('./routes/dishIngredientsRoutes');
 const app = express();
+const bookingsRoutes = require('./routes/bookingsRoutes');
+
+
+
+
+
 
 // ✅ CORS Middleware (Move to Top)
 app.use(cors({
@@ -16,8 +23,13 @@ app.use(cors({
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true })); 
 
+
+
 // ✅ Define Routes After Middleware
 app.use('/auth', phoneAuthRoutes);
+app.use('/api', veggieRoutes);
+app.use('/api/dishes', dishIngredientsRoutes);
+app.use('/api/bookings', bookingsRoutes);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
