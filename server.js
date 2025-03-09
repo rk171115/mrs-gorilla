@@ -8,6 +8,9 @@ const bookingsRoutes = require('./routes/bookingsRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const dishNutritionRoutes = require('./routes/dishNutritionRoutes');
+
+
 
 
 
@@ -35,6 +38,11 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api', apiRoutes);
 app.use('/api', cartRoutes);
 app.use('/api', orderRoutes);
+app.use('/api', dishNutritionRoutes);
+
+
+
+
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
