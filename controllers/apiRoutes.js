@@ -8,7 +8,7 @@ class ApiController {
       
       // Return all items if search is empty
       if (!name || name.trim() === '') {
-        const query = `SELECT name, image_url, image_url_2, price_per_unit FROM items`;
+        const query = `SELECT name, image_url, image_url_2, price_per_unit, description FROM items`;
         const [items] = await pool.query(query);
         
         return res.status(200).json({
@@ -133,7 +133,7 @@ class ApiController {
         queryParams.push(`%${term}%`);
       });
       
-      const query = `SELECT DISTINCT name, image_url, image_url_2, price_per_unit FROM items WHERE ${whereClause}`;
+      const query = `SELECT DISTINCT name, image_url, image_url_2, price_per_unit, description FROM items WHERE ${whereClause}`;
       const [items] = await pool.query(query, queryParams);
       
       if (items.length === 0) {

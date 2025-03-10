@@ -11,7 +11,7 @@ class DishNutritionController {
       
       // Get dish details based on name
       const [dishDetails] = await pool.query(
-        `SELECT id, name FROM dishes WHERE name = ?`,
+        `SELECT id, name, image_url, image_url_2 FROM dishes WHERE name = ?`,
         [name]
       );
       
@@ -100,6 +100,7 @@ class DishNutritionController {
           d.category,
           d.description,
           d.image_url,
+          d.image_url_2,
           dn.calories,
           dn.carbohydrates,
           dn.protein,
@@ -123,7 +124,8 @@ class DishNutritionController {
         name: results[0].name,
         category: results[0].category,
         description: results[0].description,
-        image_url: results[0].image_url
+        image_url: results[0].image_url,
+        image_url_2: results[0].image_url_2
       };
       
       // Define sources based on dish name or category

@@ -12,7 +12,7 @@ class VegetableCartDatabase {
         throw new Error('Database connection failed.');
       }
 
-      // Booking Order Table (formerly bookings)
+      // Booking Order Table (formerly bookings)21
       await pool.query(`
         CREATE TABLE IF NOT EXISTS booking_order (
           id INT AUTO_INCREMENT PRIMARY KEY,

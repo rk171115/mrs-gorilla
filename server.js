@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const phoneAuthRoutes = require('./routes/phoneAuthRoutes');
 const veggieRoutes = require('./routes/veggieroutes');
@@ -9,11 +10,15 @@ const apiRoutes = require('./routes/apiRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const dishNutritionRoutes = require('./routes/dishNutritionRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 
 
 
 
 
+
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 // ✅ CORS Middleware (Move to Top)
@@ -39,6 +44,8 @@ app.use('/api', apiRoutes);
 app.use('/api', cartRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', dishNutritionRoutes);
+// Mount address routes
+app.use('/api/addresses', addressRoutes);
 
 
 

@@ -11,7 +11,7 @@ class DishIngredientsController {
       
       // Get dish details based on name
       const [dishDetails] = await pool.query(
-        `SELECT id, name, category, description, image_url FROM dishes WHERE name = ?`, 
+        `SELECT id, name, category, description, image_url, image_url_2 FROM dishes WHERE name = ?`, 
         [name]
       );
       
@@ -44,10 +44,10 @@ class DishIngredientsController {
       });
     } catch (error) {
       console.error("Error fetching dish ingredients:", error);
-      return res.status(500).json({ 
-        error: "Failed to retrieve dish ingredients", 
-        details: error.message 
-      });
+      return res.status(500).json({
+         error: "Failed to retrieve dish ingredients",
+         details: error.message
+       });
     }
   }
 
@@ -57,10 +57,10 @@ class DishIngredientsController {
       const validCategories = ['breakfast', 'lunch', 'dinner', 'snack'];
       
       if (!category || !validCategories.includes(category.toLowerCase())) {
-        return res.status(400).json({ 
-          error: "Invalid category", 
-          validCategories: validCategories 
-        });
+        return res.status(400).json({
+           error: "Invalid category",
+           validCategories: validCategories
+         });
       }
       
       // Get all dishes in the category
@@ -70,6 +70,7 @@ class DishIngredientsController {
           name,
           description,
           image_url,
+          image_url_2,
           category
         FROM dishes
         WHERE LOWER(category) = ?
@@ -108,10 +109,10 @@ class DishIngredientsController {
       });
     } catch (error) {
       console.error("Error fetching dishes with ingredients:", error);
-      return res.status(500).json({ 
-        error: "Failed to retrieve dishes with ingredients", 
-        details: error.message 
-      });
+      return res.status(500).json({
+         error: "Failed to retrieve dishes with ingredients",
+         details: error.message
+       });
     }
   }
 }
