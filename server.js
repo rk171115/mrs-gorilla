@@ -37,13 +37,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ Define Routes After Middleware
 app.use('/auth', phoneAuthRoutes);
-app.use('/api', veggieRoutes);
+app.use('/api/veggies', veggieRoutes);
 app.use('/api/dishes', dishIngredientsRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api', apiRoutes);
-app.use('/api', cartRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', dishNutritionRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/order', orderRoutes);
+app.use('/api/dish', dishNutritionRoutes);
 // Mount address routes
 app.use('/api/addresses', addressRoutes);
 
