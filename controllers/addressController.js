@@ -1,4 +1,4 @@
-const Address = require('../models/address');
+const Address = require('../models/Address/address');
 
 class AddressController {
   // Create a new address

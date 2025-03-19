@@ -99,15 +99,15 @@ class VegetableCartDatabase {
   }
 }
 
-// Run migration and update automatically when this file is executed directly
-if (require.main === module) {
-  (async () => {
-    const initSuccess = await VegetableCartDatabase.initTables();
-    const updateSuccess = await VegetableCartDatabase.updateItemsTableTypes();
+ // Run migration and update automatically when this file is executed directly
+// if (require.main === module) {
+//   (async () => {
+//     const initSuccess = await VegetableCartDatabase.initTables();
+//     const updateSuccess = await VegetableCartDatabase.updateItemsTableTypes();
     
-    if (initSuccess && updateSuccess) process.exit(0);
-    else process.exit(1);
-  })();
-}
+//     if (initSuccess && updateSuccess) process.exit(0);
+//     else process.exit(1);
+//   })();
+// }
 
 module.exports = VegetableCartDatabase;

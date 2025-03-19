@@ -11,6 +11,12 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const dishNutritionRoutes = require('./routes/dishNutritionRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const basketRoutes = require('./routes/basketRoutes');
+const orderBasketRoutes = require('./routes/orderBasketRoutes');
+const userRoutes = require('./routes/userRoutes');
+
+// Use user routes
+
 
 
 
@@ -37,15 +43,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ Define Routes After Middleware
 app.use('/auth', phoneAuthRoutes);
-app.use('/api/veggies', veggieRoutes);
-app.use('/api/dishes', dishIngredientsRoutes);
-app.use('/api/bookings', bookingsRoutes);
-app.use('/api', apiRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/order', orderRoutes);
-app.use('/api/dish', dishNutritionRoutes);
+app.use('/api/v1/veggies', veggieRoutes);
+app.use('/api/v1/dishes', dishIngredientsRoutes);
+app.use('/api/v1/bookings', bookingsRoutes);
+app.use('/api/v1', apiRoutes);
+app.use('/api/v1/cart', cartRoutes);
+app.use('/api/v1/order', orderRoutes);
+app.use('/api/v1/dish', dishNutritionRoutes);
 // Mount address routes
-app.use('/api/addresses', addressRoutes);
+app.use('/api/v1/addresses', addressRoutes);
+app.use('/api/v1', basketRoutes);
+app.use('/api/v1', orderBasketRoutes);
+app.use('/api/users', userRoutes);
 
 
 

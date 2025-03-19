@@ -1,4 +1,4 @@
-const { pool } = require('../db_conn');
+const { pool } = require('../../db_conn');
 
 class PhoneAuth {
   // Create the necessary tables if they don't exist
@@ -27,12 +27,12 @@ class PhoneAuth {
 }
 
 // Run migration automatically when this file is executed directly
-if (require.main === module) {
-  (async () => {
-    const success = await PhoneAuth.initTables();
-    if (success) process.exit(0);
-    else process.exit(1);
-  })();
-}
+// if (require.main === module) {
+//   (async () => {
+//     const success = await PhoneAuth.initTables();
+//     if (success) process.exit(0);
+//     else process.exit(1);
+//   })();
+// }
 
 module.exports = PhoneAuth;
