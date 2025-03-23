@@ -7,13 +7,17 @@ const dishIngredientsRoutes = require('./routes/dishIngredientsRoutes');
 const app = express();
 const bookingsRoutes = require('./routes/bookingsRoutes');
 const apiRoutes = require('./routes/apiRoutes');
-const cartRoutes = require('./routes/cartRoutes');
-const orderRoutes = require('./routes/orderRoutes');
 const dishNutritionRoutes = require('./routes/dishNutritionRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const basketRoutes = require('./routes/basketRoutes');
 const orderBasketRoutes = require('./routes/orderBasketRoutes');
 const userRoutes = require('./routes/userRoutes');
+const vendorauthRoutes = require('./routes/vendor/vendorAuthRoutes');
+const feeRoutes = require('./routes/feeRoutes');
+const ordercartRoutes = require('./routes/ordercartRoutes');
+
+
+
 
 // Use user routes
 
@@ -47,14 +51,18 @@ app.use('/api/v1/veggies', veggieRoutes);
 app.use('/api/v1/dishes', dishIngredientsRoutes);
 app.use('/api/v1/bookings', bookingsRoutes);
 app.use('/api/v1', apiRoutes);
-app.use('/api/v1/cart', cartRoutes);
-app.use('/api/v1/order', orderRoutes);
+
 app.use('/api/v1/dish', dishNutritionRoutes);
 // Mount address routes
 app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1', basketRoutes);
 app.use('/api/v1', orderBasketRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/v1/vendor', vendorauthRoutes);
+app.use('/api/fees', feeRoutes);
+app.use('/api/book',ordercartRoutes );
+
+
 
 
 

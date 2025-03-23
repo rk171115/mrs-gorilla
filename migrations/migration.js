@@ -6,6 +6,9 @@ const BookingDetailsTable = require('../models/Bookings/bookingstable');
 const DishIngredientsTable= require('../models/DishIngredients/dishIngredientstable');
 const DishNutritionTable= require('../models/DishNutrition/dishNutritiontable');
 const VegetableCartDatabase = require('../models/VegetableCart/vegetablecartdatabase'); // Adjust path as needed
+const VendorDetailsTable= require('../models/Vendor/Vendor_details/vendor_detailstable');
+const VendorAuthTable= require('../models/Vendor/Vendor_auth/vendor_authtable');
+const WarehouseTable= require('../models/Vendor/Warehouse/warehousetable');
 
 
 
@@ -18,6 +21,10 @@ const tables = [
   { name: 'Booking Details', tableClass: BookingDetailsTable },
   { name: 'Dish Ingredients', tableClass: DishIngredientsTable },
   { name: 'Dish Nutrition', tableClass: DishNutritionTable },
+  { name: 'Vendor details', tableClass: VendorDetailsTable },
+  { name: 'Vendor auth', tableClass:  VendorAuthTable},
+  { name: 'Warehouse ', tableClass:  WarehouseTable},
+  
   // Add any new tables here in the future
 ];
 

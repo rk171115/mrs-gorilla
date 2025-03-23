@@ -1,4 +1,4 @@
-const { pool } = require('../db_conn');
+const { pool } = require('../../db_conn');
 
 class VegetableCartDatabase {
   // Initialize all necessary tables for the vegetable cart application

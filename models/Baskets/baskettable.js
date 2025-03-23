@@ -36,17 +36,6 @@ class BasketTable {
   }
 }
 
-// Execute createTable when file is run directly
-// if (require.main === module) {
-//   BasketTable.createTable()
-//     .then(() => {
-//       console.log('Baskets table created successfully');
-//       process.exit(0);
-//     })
-//     .catch(err => {
-//       console.error('Error creating baskets table:', err);
-//       process.exit(1);
-//     });
-// }
+
 
 module.exports = BasketTable;
