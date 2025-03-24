@@ -1,4 +1,3 @@
-// controllers/basketController.js
 const Basket = require('../models/Baskets/basket');
 
 class BasketController {
@@ -56,20 +55,50 @@ class BasketController {
       
       const baskets = await Basket.getUserBaskets(user_id);
       
-      // Format response to match the UI
-      const formattedBaskets = baskets.map(basket => {
-        const itemsList = basket.items_list ? basket.items_list.split(',') : [];
+      // If no baskets exist, return a default basket
+      // if (baskets.length === 0) {
+      //   const defaultBasket = {
+      //     basket_id: 0,
+      //     basket_name: "Good Morning basket",
+      //     icon_image: "default_basket_icon.png",
+      //     weekday: "everyday",
+      //     items: [
+      //       { item_name: "Onion", quantity: 1, unit: "Kg", price_per_unit: 20 },
+      //       { item_name: "Cauliflower", quantity: 2, unit: "Kg", price_per_unit: 30 },
+      //       { item_name: "Brinjal", quantity: 1, unit: "Kg", price_per_unit: 25 },
+      //       { item_name: "Carrot", quantity: 2, unit: "Kg", price_per_unit: 25 },
+      //       { item_name: "Bottle gourd", quantity: 1, unit: "Kg", price_per_unit: 30 }
+      //     ]
+      //   };
+        
+      //   return res.status(200).json({
+      //     success: true,
+      //     baskets: [defaultBasket],
+      //     isDefaultBasket: true
+      //   });
+      // }
+      
+      // Format response to match the UI with additional details
+      const formattedBaskets = await Promise.all(baskets.map(async basket => {
+        const basketDetails = await Basket.getBasketDetails(user_id, basket.basket_name);
         return {
+          basket_id: basket.basket_id,
           basket_name: basket.basket_name,
           icon_image: basket.icon_image,
           weekday: basket.weekday,
-          items: itemsList
+          items: basketDetails.map(item => ({
+            item_name: item.item_name,
+            quantity: item.quantity,
+            unit: item.unit,
+            price_per_unit: item.price
+          }))
         };
-      });
+      }));
       
       return res.status(200).json({
         success: true,
-        baskets: formattedBaskets
+        baskets: formattedBaskets,
+        isDefaultBasket: false
       });
     } catch (error) {
       console.error('Error getting user baskets:', error);
@@ -103,14 +132,17 @@ class BasketController {
       
       // Format response 
       const formattedResponse = {
+        basket_id: basketItems[0].basket_id,
         basket_name: basketItems[0].basket_name,
         icon_image: basketItems[0].icon_image,
         weekday: basketItems[0].weekday,
         items: basketItems.map(item => ({
+          detail_id: item.detail_id,
           item_id: item.item_id,
           item_name: item.item_name,
           quantity: item.quantity,
-          price: item.price,
+          unit: item.unit,
+          price_per_unit: item.price,
           item_image: item.item_image
         }))
       };
@@ -131,16 +163,16 @@ class BasketController {
   
   static async updateBasketItem(req, res) {
     try {
-      const { basket_id, quantity } = req.body;
+      const { detail_id, quantity } = req.body;
       
-      if (!basket_id || !quantity || quantity <= 0) {
+      if (!detail_id || !quantity || quantity <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Basket ID and a positive quantity are required'
+          message: 'Detail ID and a positive quantity are required'
         });
       }
       
-      const result = await Basket.updateBasketItem(basket_id, quantity);
+      const result = await Basket.updateBasketItem(detail_id, quantity);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Error updating basket item:', error);
@@ -154,16 +186,16 @@ class BasketController {
   
   static async deleteBasketItem(req, res) {
     try {
-      const { basket_id } = req.params;
+      const { detail_id } = req.params;
       
-      if (!basket_id) {
+      if (!detail_id) {
         return res.status(400).json({
           success: false,
-          message: 'Basket ID is required'
+          message: 'Detail ID is required'
         });
       }
       
-      const result = await Basket.deleteBasketItem(basket_id);
+      const result = await Basket.deleteBasketItem(detail_id);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Error deleting basket item:', error);

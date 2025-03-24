@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/userController');
 //const { authenticateToken } = require('../middleware/auth'); // Assuming you have auth middleware
-const auth = require('../middleware/auth');
+//const auth = require('../middleware/auth');
 // Create a new user
 // POST /api/users
 router.post('/', UserController.createUser);
 
 // Get all users
 // GET /api/users
-router.get('/',auth , UserController.getAllUsers);
+router.get('/', UserController.getAllUsers);
 
 // Search users
 // GET /api/users/search?q=searchTerm

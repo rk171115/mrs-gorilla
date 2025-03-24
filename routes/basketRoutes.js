@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const BasketController = require('../controllers/basketController');
-// Removed the auth middleware import
 
 // Create a new basket
 router.post('/baskets', BasketController.createBasket);
@@ -17,7 +16,7 @@ router.get('/baskets/user/:user_id/basket/:basket_name', BasketController.getBas
 router.put('/baskets/item', BasketController.updateBasketItem);
 
 // Delete a basket item
-router.delete('/baskets/item/:basket_id', BasketController.deleteBasketItem);
+router.delete('/baskets/item/:detail_id', BasketController.deleteBasketItem);
 
 // Delete an entire basket
 router.delete('/baskets/user/:user_id/basket/:basket_name', BasketController.deleteBasket);

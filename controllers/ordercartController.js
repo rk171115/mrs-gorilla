@@ -171,3 +171,77 @@ exports.getBookingById = async (req, res) => {
     if (conn) conn.release();
   }
 };
+
+// Get all bookings by user_id with optional type filter
+exports.getBookingsByUserId = async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const user_id = req.params.userId;
+    const booking_type = req.query.type; // Optional query param to filter by cart/order
+    
+    // Validate booking type if provided
+    if (booking_type && !['cart', 'order'].includes(booking_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking type. Must be either "cart" or "order".'
+      });
+    }
+    
+    // Build the query with optional type filter
+    let query = 'SELECT * FROM booking_order WHERE user_id = ?';
+    const queryParams = [user_id];
+    
+    if (booking_type) {
+      query += ' AND booking_type = ?';
+      queryParams.push(booking_type);
+    }
+    
+    // Add ordering to get the most recent first
+    query += ' ORDER BY created_at DESC';
+    
+    // Get the bookings
+    const [ordersResult] = await conn.query(query, queryParams);
+    
+    if (ordersResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: booking_type 
+          ? `No ${booking_type}s found for this user` 
+          : 'No bookings found for this user'
+      });
+    }
+    
+    // Get details for each booking
+    const bookingsWithDetails = await Promise.all(
+      ordersResult.map(async (booking) => {
+        const [detailsResult] = await conn.query(
+          'SELECT * FROM booking_details WHERE booking_id = ?',
+          [booking.id]
+        );
+        
+        return {
+          booking,
+          items: detailsResult
+        };
+      })
+    );
+    
+    // Return the complete booking information
+    return res.status(200).json({
+      success: true,
+      count: ordersResult.length,
+      data: bookingsWithDetails
+    });
+    
+  } catch (error) {
+    console.error('Error fetching user bookings:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user bookings',
+      error: error.message
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+};
