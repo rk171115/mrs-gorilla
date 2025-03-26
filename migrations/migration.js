@@ -1,29 +1,32 @@
 // migration.js
+const UserTable = require('../models/Users/usertable');
 const AddressTable = require('../models/Address/addresstable');
 const ItemsTable = require('../models/ApiRoutes/apiRoutestable');
 const BasketTable = require('../models/Baskets/baskettable');
+const BookingOrderTable = require('../models/Cart/carttable');
 const BookingDetailsTable = require('../models/Bookings/bookingstable');
-const DishIngredientsTable= require('../models/DishIngredients/dishIngredientstable');
-const DishNutritionTable= require('../models/DishNutrition/dishNutritiontable');
 const VegetableCartDatabase = require('../models/VegetableCart/vegetablecartdatabase'); // Adjust path as needed
 const VendorDetailsTable= require('../models/Vendor/Vendor_details/vendor_detailstable');
 const VendorAuthTable= require('../models/Vendor/Vendor_auth/vendor_authtable');
 const WarehouseTable= require('../models/Vendor/Warehouse/warehousetable');
+const ItemPromotionTable= require('../models/Promotion/item_promotiontable');
+
 
 
 
 
 // List of all tables to migrate
 const tables = [
+  { name: 'Users', tableClass: UserTable },
   { name: 'Addresses', tableClass: AddressTable },
   { name: 'Items', tableClass: ItemsTable },
   { name: 'Baskets', tableClass: BasketTable },
+  { name: 'order', tableClass: BookingOrderTable },
   { name: 'Booking Details', tableClass: BookingDetailsTable },
-  { name: 'Dish Ingredients', tableClass: DishIngredientsTable },
-  { name: 'Dish Nutrition', tableClass: DishNutritionTable },
   { name: 'Vendor details', tableClass: VendorDetailsTable },
   { name: 'Vendor auth', tableClass:  VendorAuthTable},
   { name: 'Warehouse ', tableClass:  WarehouseTable},
+  { name: 'Promotion ', tableClass:  ItemPromotionTable},
   
   // Add any new tables here in the future
 ];

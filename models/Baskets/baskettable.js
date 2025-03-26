@@ -1,16 +1,23 @@
-// models/Baskets/baskettable.js
 const { pool } = require('../../db_conn');
 
 class BasketTable {
   static async createTable() {
-    // Modify existing baskets table
-    const modifyBasketsTableQuery = `
-      ALTER TABLE baskets 
-      DROP COLUMN IF EXISTS item_id,
-      DROP COLUMN IF EXISTS quantity
+    // Create baskets table with user_id as a foreign key
+    const createBasketsTableQuery = `
+      CREATE TABLE IF NOT EXISTS baskets (
+        basket_id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        basket_name VARCHAR(100) NOT NULL,
+        icon_image VARCHAR(255) NULL,
+        weekday ENUM('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun') NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (basket_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
     `;
 
-    // Create basket_details table
+    // Create basket_details table 
     const createBasketDetailsTableQuery = `
       CREATE TABLE IF NOT EXISTS basket_details (
         detail_id INT(11) NOT NULL AUTO_INCREMENT,
@@ -27,15 +34,15 @@ class BasketTable {
     `;
 
     try {
-      // Attempt to modify the baskets table
-      await pool.query(modifyBasketsTableQuery);
-      
+      // Create baskets table
+      await pool.query(createBasketsTableQuery);
+
       // Create basket_details table
       await pool.query(createBasketDetailsTableQuery);
-      
+
       return true;
     } catch (error) {
-      console.error('Error creating/modifying tables:', error);
+      console.error('Error creating tables:', error);
       throw error;
     }
   }
@@ -43,12 +50,13 @@ class BasketTable {
   static async dropTable() {
     // Drop tables in correct order to avoid foreign key constraints
     await pool.query('DROP TABLE IF EXISTS basket_details');
+    await pool.query('DROP TABLE IF EXISTS baskets');
     return true;
   }
 
   static async getTableInfo() {
-    // Get information about basket_details table
-    const query = 'DESCRIBE basket_details';
+    // Get information about baskets table
+    const query = 'DESCRIBE baskets';
     const [rows] = await pool.query(query);
     return rows;
   }

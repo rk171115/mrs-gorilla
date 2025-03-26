@@ -6,54 +6,59 @@ class OrderBasket {
     try {
       // Begin transaction
       await pool.query('START TRANSACTION');
-      
-      // Get basket items directly from baskets table
+
+      // Get basket items using the corrected query with basket_details
       const basketItemsQuery = `
         SELECT 
           b.basket_id,
-          b.item_id,
-          b.quantity,
+          bd.item_id,
+          bd.quantity,
           i.price_per_unit,
           i.name as item_name
         FROM baskets b
-        JOIN items i ON b.item_id = i.id
+        JOIN basket_details bd ON b.basket_id = bd.basket_id
+        JOIN items i ON bd.item_id = i.id
         WHERE b.user_id = ? AND b.basket_name = ?
       `;
       const [basketItems] = await pool.query(basketItemsQuery, [user_id, basket_name]);
-      
+
       if (basketItems.length === 0) {
         await pool.query('ROLLBACK');
-        return {
-          success: false,
-          message: 'Basket not found or is empty'
-        };
+        return { success: false, message: 'Basket not found or is empty' };
       }
-      
+
       // Get a reference basket_id (all items share the same basket_name)
       const basket_id = basketItems[0].basket_id;
-      
+
       // Calculate total price from items
-      const total_price = basketItems.reduce((sum, item) => {
-        return sum + (item.price_per_unit * item.quantity);
-      }, 0);
-      
+      const total_price = basketItems.reduce((sum, item) => sum + (item.price_per_unit * item.quantity), 0);
+
       // Create order in booking_order table
       const orderQuery = `
         INSERT INTO booking_order
         (user_id, booking_type, total_price, created_at, updated_at, basket_id)
         VALUES (?, 'basket', ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), ?)
       `;
-      const [orderResult] = await pool.query(orderQuery, [
-        user_id,
-        total_price,
-        basket_id
-      ]);
-      
+      const [orderResult] = await pool.query(orderQuery, [user_id, total_price, basket_id]);
       const order_id = orderResult.insertId;
-      
+
+      // Create booking details
+      const bookingDetailsQuery = `
+        INSERT INTO booking_details 
+        (booking_id, item_id, quantity, price_per_unit)
+        VALUES ?
+      `;
+      const bookingDetailsValues = basketItems.map(item => [
+        order_id, 
+        item.item_id, 
+        item.quantity, 
+        item.price_per_unit
+      ]);
+      await pool.query(bookingDetailsQuery, [bookingDetailsValues]);
+
       // Commit transaction
       await pool.query('COMMIT');
-      
+
       return {
         success: true,
         message: "Order successfully created",
@@ -75,7 +80,7 @@ class OrderBasket {
 
   static async getBasketOrderHistory(user_id) {
     const query = `
-      SELECT
+      SELECT 
         bo.id as order_id,
         bo.total_price,
         bo.created_at,
@@ -84,7 +89,8 @@ class OrderBasket {
         GROUP_CONCAT(DISTINCT i.name SEPARATOR ', ') as items_list
       FROM booking_order bo
       JOIN baskets b ON bo.basket_id = b.basket_id
-      JOIN items i ON b.item_id = i.id
+      JOIN basket_details bd ON b.basket_id = bd.basket_id
+      JOIN items i ON bd.item_id = i.id
       WHERE bo.user_id = ? AND bo.booking_type = 'basket'
       GROUP BY bo.id
       ORDER BY bo.created_at DESC
@@ -95,30 +101,31 @@ class OrderBasket {
 
   static async getBasketOrderDetails(order_id, user_id) {
     const query = `
-      SELECT
+      SELECT 
         bo.id as order_id,
         bo.total_price,
         bo.created_at,
         bo.basket_id,
         b.basket_name,
-        b.item_id,
-        b.quantity,
+        bd.item_id,
+        bd.quantity,
         i.price_per_unit as price,
         i.name as item_name,
         i.image_url as item_image
       FROM booking_order bo
       JOIN baskets b ON bo.basket_id = b.basket_id
-      JOIN items i ON b.item_id = i.id
+      JOIN basket_details bd ON b.basket_id = bd.basket_id
+      JOIN items i ON bd.item_id = i.id
       WHERE bo.id = ? AND bo.user_id = ? AND bo.booking_type = 'basket'
     `;
     const [rows] = await pool.query(query, [order_id, user_id]);
-    
+
     if (rows.length === 0) {
       return null;
     }
-    
+
     // Format the response
-    const orderDetails = {
+    return {
       order_id: rows[0].order_id,
       total_price: rows[0].total_price,
       created_at: rows[0].created_at,
@@ -132,8 +139,6 @@ class OrderBasket {
         item_image: row.item_image
       }))
     };
-    
-    return orderDetails;
   }
 }
 

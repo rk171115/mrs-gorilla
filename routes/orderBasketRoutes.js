@@ -2,14 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const OrderBasketController = require('../controllers/orderBasketController');
+const auth = require('../middleware/auth');
 
 // Place an order from a basket
-router.post('/orders/basket', OrderBasketController.orderBasket);
+router.post('/basket',auth,OrderBasketController.orderBasket);
 
 // Get order history for a user
-router.get('/orders/user/:user_id', OrderBasketController.getBasketOrderHistory);
+router.get('/user/:user_id',auth, OrderBasketController.getBasketOrderHistory);
 
 // Get details of a specific order
-router.get('/orders/:order_id/user/:user_id', OrderBasketController.getBasketOrderDetails);
+router.get('/:order_id/user/:user_id',auth, OrderBasketController.getBasketOrderDetails);
 
 module.exports = router;

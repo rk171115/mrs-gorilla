@@ -21,56 +21,56 @@ class VegetableCartDatabase {
       console.log('✅ Items table migrated successfully!');
 
       // Dishes Table
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS dishes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        category ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL,
-        description TEXT NULL,
-        image_url VARCHAR(255) NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-      console.log('✅ Dishes table migrated successfully!');
+      // await pool.query(`
+      //   CREATE TABLE IF NOT EXISTS dishes (
+      //   id INT AUTO_INCREMENT PRIMARY KEY,
+      //   name VARCHAR(100) NOT NULL,
+      //   category ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL,
+      //   description TEXT NULL,
+      //   image_url VARCHAR(255) NULL,
+      //   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      //   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      //   )
+      // `);
+      // console.log('✅ Dishes table migrated successfully!');
 
       // Dish Ingredients Table (Many-to-Many relationship)
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS dish_ingredients (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        dish_id INT NOT NULL,
-        item_id INT NOT NULL,
-        quantity VARCHAR(50) NOT NULL,
-        FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
-        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_dish_item (dish_id, item_id)
-        )
-      `);
-      console.log('✅ Dish Ingredients table migrated successfully!');
+      // await pool.query(`
+      //   CREATE TABLE IF NOT EXISTS dish_ingredients (
+      //   id INT AUTO_INCREMENT PRIMARY KEY,
+      //   dish_id INT NOT NULL,
+      //   item_id INT NOT NULL,
+      //   quantity VARCHAR(50) NOT NULL,
+      //   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
+      //   FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+      //   UNIQUE KEY unique_dish_item (dish_id, item_id)
+      //   )
+      // `);
+      // console.log('✅ Dish Ingredients table migrated successfully!');
 
       // Categories Table
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS categories (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL UNIQUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-      console.log('✅ Categories table migrated successfully!');
+      // await pool.query(`
+      //   CREATE TABLE IF NOT EXISTS categories (
+      //   id INT AUTO_INCREMENT PRIMARY KEY,
+      //   name VARCHAR(100) NOT NULL UNIQUE,
+      //   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      //   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      //   )
+      // `);
+      // console.log('✅ Categories table migrated successfully!');
 
-      // Category Ingredients Table (Many-to-Many relationship)
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS category_ingredients (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        category_id INT NOT NULL,
-        item_id INT NOT NULL,
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_category_item (category_id, item_id)
-        )
-      `);
-      console.log('✅ Category Ingredients table migrated successfully!');
+      // // Category Ingredients Table (Many-to-Many relationship)
+      // await pool.query(`
+      //   CREATE TABLE IF NOT EXISTS category_ingredients (
+      //   id INT AUTO_INCREMENT PRIMARY KEY,
+      //   category_id INT NOT NULL,
+      //   item_id INT NOT NULL,
+      //   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+      //   FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+      //   UNIQUE KEY unique_category_item (category_id, item_id)
+      //   )
+      // `);
+      // console.log('✅ Category Ingredients table migrated successfully!');
 
       return true;
     } catch (error) {

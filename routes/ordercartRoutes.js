@@ -19,15 +19,16 @@
 const express = require('express');
 const router = express.Router();
 const ordercartController = require('../controllers/ordercartController');
+const auth = require('../middleware/auth');
 
 // POST - Create a new booking (cart or order)
-router.post('/create', ordercartController.createBooking);
+router.post('/create',auth, ordercartController.createBooking);
 
 // GET - Get booking details by ID
-router.get('/details/:id', ordercartController.getBookingById);
+router.get('/details/:id',auth, ordercartController.getBookingById);
 
 // GET - Get all bookings by user ID (with optional type filter)
-router.get('/user/:userId', ordercartController.getBookingsByUserId);
+router.get('/user/:userId',auth, ordercartController.getBookingsByUserId);
 
 // Test endpoint
 router.get('/test', (req, res) => {

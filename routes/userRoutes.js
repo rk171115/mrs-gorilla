@@ -2,37 +2,37 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/userController');
 //const { authenticateToken } = require('../middleware/auth'); // Assuming you have auth middleware
-//const auth = require('../middleware/auth');
+const auth = require('../middleware/auth');
 // Create a new user
 // POST /api/users
-router.post('/', UserController.createUser);
+router.post('/',auth, UserController.createUser);
 
 // Get all users
 // GET /api/users
-router.get('/', UserController.getAllUsers);
+router.get('/',auth, UserController.getAllUsers);
 
 // Search users
 // GET /api/users/search?q=searchTerm
-router.get('/search', UserController.searchUsers);
+router.get('/search',auth, UserController.searchUsers);
 
 // Get a specific user
 // GET /api/users/:id
-router.get('/:id', UserController.getUserById);
+router.get('/:id',auth, UserController.getUserById);
 
 // Update a user
 // PUT /api/users/:id
-router.put('/:id', UserController.updateUser);
+router.put('/:id',auth, UserController.updateUser);
 
 // Delete a user
 // DELETE /api/users/:id
-router.delete('/:id', UserController.deleteUser);
+router.delete('/:id',auth, UserController.deleteUser);
 
 // Update last login
 // PUT /api/users/:id/login
-router.put('/:id/login', UserController.updateLastLogin);
+router.put('/:id/login',auth, UserController.updateLastLogin);
 
 // Set user as verified
 // PUT /api/users/:id/verify
-router.put('/:id/verify', UserController.setVerified);
+router.put('/:id/verify',auth, UserController.setVerified);
 
 module.exports = router;

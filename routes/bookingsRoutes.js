@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const BookingsController = require('../controllers/bookingsController');
+const auth = require('../middleware/auth');
 
 // Add a new booking
-router.post('/add', BookingsController.addBooking);
+router.post('/add',auth, BookingsController.addBooking);
 
 // Get bookings for a specific user
-router.get('/user/:user_id', BookingsController.getUserBookings);
+router.get('/user/:user_id',auth,BookingsController.getUserBookings);
 
 module.exports = router;
