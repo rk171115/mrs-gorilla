@@ -13,7 +13,7 @@ class BookingOrderTable {
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (basket_id) REFERENCES baskets(id) ON DELETE SET NULL
+        FOREIGN KEY (basket_id) REFERENCES baskets(basket_id) ON DELETE SET NULL
       )
     `;
     await pool.query(query);

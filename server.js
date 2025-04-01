@@ -23,6 +23,28 @@ const vendorauthRoutes = require('./routes/vendor/vendorAuthRoutes');
 const feeRoutes = require('./routes/feeRoutes');
 const ordercartRoutes = require('./routes/ordercartRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
+const fetchvendorRoutes = require('./routes/vendor/fetchvendorRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
+const cartRoutes = require('./routes/vendor/cartRoutes');
+const orderRequestRoutes = require('./routes/vendor/orderRequestRoutes');
+const billingRoutes = require('./routes/vendor/billingRoutes');
+const OrderRequestRoutes = require('./routes/vendor/NotificationRoutes');
+
+
+
+
+
+
+
+
+
+
+
+// Middleware
+
+
+// Routes
+
 
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -52,6 +74,14 @@ app.use('/api/v1/vendor', vendorauthRoutes);
 app.use('/api/v1/fees', feeRoutes);
 app.use('/api/v1/book', ordercartRoutes);
 app.use('/api/v1/promotion', promotionRoutes);
+app.use('/api/v1/fetch', fetchvendorRoutes);
+app.use('/api/v1/warehouses', warehouseRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/v1/request', orderRequestRoutes);
+app.use('/api/v1/billing', billingRoutes);
+app.use('/api/v1/notification', OrderRequestRoutes);
+
+
 
 const PORT = process.env.PORT || 8000;
 

@@ -1,4 +1,3 @@
-// controllers/vendorAuthController.js
 const axios = require('axios');
 require('dotenv').config();
 const VendorAuthModel = require('../../models/Vendor/Vendor_auth/vendor_authModel');
@@ -137,12 +136,10 @@ class VendorAuthController {
       // Get vendor details
       const vendorDetails = await VendorAuthModel.getVendorDetailsById(vendorAuth.vendor_details_id);
       
-      // Generate vendorId (from name and phone number)
-      const vendorId = `${vendorDetails.Name.substring(0, 3)}${phone_no.substring(0, 4)}`;
-      
       res.status(200).json({
         message: "Login successful!",
-        vendorId,
+        vendorId: vendorAuth.vendorId,
+        emailId: vendorAuth.emailId,
         passkey: vendorAuth.passkey,
         vendor: {
           ...vendorDetails,
@@ -177,6 +174,7 @@ class VendorAuthController {
       res.status(201).json({
         message: "Vendor registered successfully!",
         vendorId: result.vendorId,
+        emailId: result.emailId,
         passkey: result.passkey
       });
     } catch (error) {
@@ -204,12 +202,15 @@ class VendorAuthController {
       // Update last login time
       await VendorAuthModel.updateLastLogin(vendor.id);
       
-      // Get vendor details
-      const vendorDetails = await VendorAuthModel.getVendorDetailsById(vendor.vendor_details_id);
-      
       res.status(200).json({
         message: "Login successful!",
-        vendor: vendorDetails
+        vendorId: vendor.vendorId,
+        emailId: vendor.emailId,
+        cart_type: vendor.cart_type,
+        image_url: vendor.image_url,
+        vendor: {
+          ...vendor
+        }
       });
     } catch (error) {
       console.error("Error verifying credentials:", error);

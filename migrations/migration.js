@@ -8,8 +8,13 @@ const BookingDetailsTable = require('../models/Bookings/bookingstable');
 const VegetableCartDatabase = require('../models/VegetableCart/vegetablecartdatabase'); // Adjust path as needed
 const VendorDetailsTable= require('../models/Vendor/Vendor_details/vendor_detailstable');
 const VendorAuthTable= require('../models/Vendor/Vendor_auth/vendor_authtable');
+const OrderRequestTable= require('../models/Vendor/Order_request/OrderRequestTable');
 const WarehouseTable= require('../models/Vendor/Warehouse/warehousetable');
 const ItemPromotionTable= require('../models/Promotion/item_promotiontable');
+
+const BillingTable = require('../models/Vendor/Vendorbilling/BillingTable');
+
+
 
 
 
@@ -25,8 +30,11 @@ const tables = [
   { name: 'Booking Details', tableClass: BookingDetailsTable },
   { name: 'Vendor details', tableClass: VendorDetailsTable },
   { name: 'Vendor auth', tableClass:  VendorAuthTable},
+  { name: 'order request', tableClass: OrderRequestTable },
   { name: 'Warehouse ', tableClass:  WarehouseTable},
   { name: 'Promotion ', tableClass:  ItemPromotionTable},
+  { name: 'Billing', tableClass: BillingTable },
+
   
   // Add any new tables here in the future
 ];
@@ -46,6 +54,28 @@ async function runMigrations() {
       process.exit(1);
     }
   }
+
+  try {
+    console.log('Adding user_id column to order_request table...');
+    await OrderRequestTable.addUserIdColumn();
+    console.log('✅ User_id column added to order_request table successfully');
+  } catch (error) {
+    console.error('❌ Error adding user_id column:', error);
+    process.exit(1);
+  }
+
+  try {
+    console.log('Adding warehouse foreign key to vendor_details table...');
+    await VendorDetailsTable.alterTableAddWarehouseFK();
+    console.log('✅ Warehouse foreign key added to vendor_details successfully');
+  } catch (error) {
+    console.error('❌ Error adding warehouse foreign key:', error);
+    process.exit(1);
+  }
+
+  
+
+  
 
   try {
     console.log('Initializing VegetableCart tables...');
