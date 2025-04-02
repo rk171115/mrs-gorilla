@@ -44,84 +44,93 @@ class OrderRequestModel {
   }
 
   /**
-   * Create a new order request
-   * @param {Object} orderData - Order request data
-   * @returns {Promise<Object>} - Result of the insertion
+   * Create multiple order requests, one for each vendor
+   * @param {Object} orderData - Order request data with array of vendor IDs
+   * @returns {Promise<Object>} - Result of the insertions
    */
-  static async createOrderRequest(orderData) {
+  static async createOrderRequests(orderData) {
     try {
       const { userId, orderId, vendorIds } = orderData;
+      const results = [];
       
       // Begin a transaction
       await pool.query('START TRANSACTION');
       
-      // Insert the main order request
-      const orderQuery = `
-        INSERT INTO order_request (user_id, booking_id, status, created_at, updated_at)
-        VALUES (?, ?, 'pending', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
-      `;
-      const [orderResult] = await pool.query(orderQuery, [userId, orderId]);
-      const orderRequestId = orderResult.insertId;
-      
-      // Associate vendors with the order request
+      // Create an order request for each vendor
       for (const vendorId of vendorIds) {
-        const vendorOrderQuery = `
-          INSERT INTO order_request_vendors (order_request_id, vendor_id, notification_sent, created_at)
-          VALUES (?, ?, true, CURRENT_TIMESTAMP())
+        const orderQuery = `
+          INSERT INTO order_request (user_id, booking_id, vendor_id, status, created_at, updated_at)
+          VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
         `;
-        await pool.query(vendorOrderQuery, [orderRequestId, vendorId]);
+        const [orderResult] = await pool.query(orderQuery, [userId, orderId, vendorId]);
+        results.push({
+          orderRequestId: orderResult.insertId,
+          vendorId
+        });
       }
       
       // Commit the transaction
       await pool.query('COMMIT');
       
       return {
-        orderRequestId,
+        orderRequests: results,
         vendorCount: vendorIds.length
       };
     } catch (error) {
       // Rollback in case of error
       await pool.query('ROLLBACK');
-      console.error('Error creating order request:', error);
+      console.error('Error creating order requests:', error);
       throw error;
     }
   }
 
   /**
-   * Get details of an order request including notified vendors
+   * Get details of an order request
    * @param {number} orderRequestId - The ID of the order request
-   * @returns {Promise<Object>} - Order request details with vendors
+   * @returns {Promise<Object>} - Order request details
    */
   static async getOrderRequestDetails(orderRequestId) {
     try {
-      // Get basic order request info
-      const orderQuery = `
-        SELECT or.id, or.user_id, or.booking_id, or.status, or.created_at
+      const query = `
+        SELECT or.id, or.user_id, or.booking_id, or.vendor_id, or.status, or.reason, or.created_at, or.updated_at,
+               v.Name as vendor_name, v.cart_type, v.VehicleNo
         FROM order_request or
+        JOIN vendor_details v ON or.vendor_id = v.id
         WHERE or.id = ?
       `;
-      const [orderResults] = await pool.query(orderQuery, [orderRequestId]);
       
-      if (orderResults.length === 0) {
+      const [results] = await pool.query(query, [orderRequestId]);
+      
+      if (results.length === 0) {
         return null;
       }
       
-      // Get associated vendors
-      const vendorsQuery = `
-        SELECT vd.id, vd.Name, vd.cart_type, vd.VehicleNo, 
-               orv.notification_sent, orv.created_at as notification_time
-        FROM order_request_vendors orv
-        JOIN vendor_details vd ON orv.vendor_id = vd.id
-        WHERE orv.order_request_id = ?
-      `;
-      const [vendorsResults] = await pool.query(vendorsQuery, [orderRequestId]);
-      
-      return {
-        ...orderResults[0],
-        notifiedVendors: vendorsResults
-      };
+      return results[0];
     } catch (error) {
       console.error('Error getting order request details:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all order requests for a specific booking
+   * @param {number} bookingId - The booking ID
+   * @returns {Promise<Array>} - List of order requests with vendor details
+   */
+  static async getOrderRequestsByBookingId(bookingId) {
+    try {
+      const query = `
+        SELECT or.id, or.user_id, or.booking_id, or.vendor_id, or.status, or.reason, or.created_at, or.updated_at,
+               v.Name as vendor_name, v.cart_type, v.VehicleNo
+        FROM order_request or
+        JOIN vendor_details v ON or.vendor_id = v.id
+        WHERE or.booking_id = ?
+      `;
+      
+      const [results] = await pool.query(query, [bookingId]);
+      return results;
+    } catch (error) {
+      console.error('Error getting order requests by booking ID:', error);
       throw error;
     }
   }

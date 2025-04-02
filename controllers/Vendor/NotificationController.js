@@ -49,25 +49,24 @@ class OrderRequestController {
         });
       }
       
-      // Create order request and notify vendors
+      // Extract all vendor IDs
       const vendorIds = vendors.map(vendor => vendor.id);
-      const result = await OrderRequestModel.createOrderRequest({
+      
+      // Create order requests for all matching vendors
+      const result = await OrderRequestModel.createOrderRequests({
         userId: user_id,
         orderId: order_id,
-        vendorIds
+        vendorIds: vendorIds
       });
       
-      // Get full order request details including vendors
-      const orderDetails = await OrderRequestModel.getOrderRequestDetails(result.orderRequestId);
-      
       return res.status(201).json({
-        message: `Order request created and notifications sent to ${vendors.length} vendors`,
+        message: `Order requests created and notifications sent to ${vendors.length} vendors`,
         warehouse: {
           id: warehouse.id,
           name: warehouse.warehouse_Name,
           address: warehouse.Address
         },
-        order_request_id: result.orderRequestId,
+        order_requests_count: result.vendorCount,
         notified_vendors: vendors.map(v => ({
           id: v.id,
           name: v.Name,
@@ -81,7 +80,7 @@ class OrderRequestController {
       
       if (error.code === 'ER_NO_REFERENCED_ROW_2') {
         return res.status(400).json({
-          error: "Invalid user_id or order_id. Make sure both exist in their respective tables."
+          error: "Invalid user_id, order_id, or vendor_id. Make sure they exist in their respective tables."
         });
       }
       
@@ -119,6 +118,36 @@ class OrderRequestController {
       console.error("Error retrieving order request:", error);
       return res.status(500).json({
         error: "Failed to retrieve order request",
+        details: error.message
+      });
+    }
+  }
+  
+  /**
+   * Get all order requests for a specific booking
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  static async getOrderRequestsByBooking(req, res) {
+    try {
+      const { booking_id } = req.params;
+      
+      if (!booking_id) {
+        return res.status(400).json({ error: "Booking ID is required" });
+      }
+      
+      const orderRequests = await OrderRequestModel.getOrderRequestsByBookingId(booking_id);
+      
+      return res.status(200).json({
+        booking_id: parseInt(booking_id),
+        order_requests_count: orderRequests.length,
+        order_requests: orderRequests
+      });
+      
+    } catch (error) {
+      console.error("Error retrieving order requests:", error);
+      return res.status(500).json({
+        error: "Failed to retrieve order requests",
         details: error.message
       });
     }
