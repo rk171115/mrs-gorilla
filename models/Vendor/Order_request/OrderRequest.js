@@ -47,31 +47,74 @@ class OrderRequest {
     }
   }
 
+  
+
   // Get all order requests for a vendor
-  static async getVendorOrderRequests(vendorId) {
-    try {
-      const [requests] = await pool.query(`
+  // Get all order requests for a vendor
+static async getVendorOrderRequests(vendorId) {
+  try {
+    // First, fetch the order requests
+    const [requests] = await pool.query(`
+      SELECT
+        req.id,
+        req.status,
+        req.reason,
+        req.created_at,
+        bo.id as booking_id,
+        bo.booking_type,
+        bo.total_price,
+        bo.user_id,
+        u.full_name as user_name,
+          bo.address
+      FROM order_request req
+      JOIN booking_order bo ON req.booking_id = bo.id
+      JOIN users u ON bo.user_id = u.id
+      WHERE req.vendor_id = ?
+      ORDER BY req.created_at DESC
+    `, [vendorId]);
+    
+    // For each request, fetch a preview of items (limited to 2)
+    const requestsWithItems = await Promise.all(requests.map(async (request) => {
+      // Get items for this booking (limited to 2 for preview)
+      const [items] = await pool.query(`
         SELECT 
-          req.id,
-          req.status,
-          req.reason,
-          req.created_at,
-          bo.id as booking_id,
-          bo.booking_type,
-          bo.total_price,
-          bo.user_id
-        FROM order_request req
-        JOIN booking_order bo ON req.booking_id = bo.id
-        WHERE req.vendor_id = ?
-        ORDER BY req.created_at DESC
-      `, [vendorId]);
+          bd.item_id,
+          bd.quantity,
+          bd.price_per_unit,
+          i.name AS item_name,
+          i.image_url
+        FROM booking_details bd
+        JOIN items i ON bd.item_id = i.id
+        WHERE bd.booking_id = ?
+        LIMIT 2
+      `, [request.booking_id]);
       
-      return { success: true, requests };
-    } catch (error) {
-      console.error('Error fetching vendor order requests:', error);
-      return { success: false, error: error.message };
-    }
+      // Format items with full image URLs
+      const formattedItems = items.map(item => ({
+        ...item,
+        image_url: getFullImageUrl(item.image_url)
+      }));
+      
+      // Get total number of items in this booking
+      const [totalItemsResult] = await pool.query(
+        'SELECT COUNT(*) as total_items FROM booking_details WHERE booking_id = ?',
+        [request.booking_id]
+      );
+      
+      // Add items preview and total items count to the request object
+      return {
+        ...request,
+        items_preview: formattedItems,
+        total_items: totalItemsResult[0].total_items
+      };
+    }));
+    
+    return { success: true, requests: requestsWithItems };
+  } catch (error) {
+    console.error('Error fetching vendor order requests:', error);
+    return { success: false, error: error.message };
   }
+}
 
   // Get details of an order request with booking items
   static async getOrderRequestDetails(requestId) {
@@ -89,10 +132,13 @@ class OrderRequest {
           vd.cart_type,
           bo.booking_type,
           bo.total_price,
-          bo.user_id
+          
+          u.full_name as user_name,
+          bo.address
         FROM order_request req
         JOIN vendor_details vd ON req.vendor_id = vd.id
         JOIN booking_order bo ON req.booking_id = bo.id
+        JOIN users u ON bo.user_id = u.id
         WHERE req.id = ?
       `, [requestId]);
       
