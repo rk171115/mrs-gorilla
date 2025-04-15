@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    label {
+      display: inline-block;
+      width: 100px;
+      margin: 10px 0;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .update-section {
+      margin-top: 20px;
+    }
+    .status-display {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .location-updates {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-height: 200px;
+    }
+    .order-selector {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    #orderId {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vendor Dashboard</h1>
+  
+  <div class="order-selector">
+    <h2>Accept New Order</h2>
+    <p>Enter an order ID to accept and start tracking:</p>
+    <div>
+      <label for="orderId">Order ID:</label>
+      <input type="text" id="orderId" placeholder="Enter Order ID">
+    </div>
+    <button id="acceptOrderBtn">Accept Order</button>
+  </div>
+  
+  <div class="update-section">
+    <h2>Update Location</h2>
+    <div>
+      <label for="latitude">Latitude:</label>
+      <input type="text" id="latitude" placeholder="Latitude">
+    </div>
+    <div>
+      <label for="longitude">Longitude:</label>
+      <input type="text" id="longitude" placeholder="Longitude">
+    </div>
+    <div>
+      <label for="status">Status:</label>
+      <select id="status">
+        <option value="preparing">Preparing</option>
+        <option value="on_the_way">On the way</option>
+        <option value="nearby">Nearby</option>
+        <option value="arrived">Arrived</option>
+      </select>
+    </div>
+    <button id="updateBtn">Update Location</button>
+    <button id="autoUpdateBtn">Toggle Auto Updates</button>
+  </div>
+  
+  <div id="connectionStatus" class="status-display">Status: Not connected</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Constants and state
+    const API_BASE_URL = 'http://localhost:3001/api/tracking';
+    const socket = io("http://localhost:3001");
+    let connected = false;
+    let currentOrderId = null;
+    let autoUpdateInterval = null;
+    let vendorId = null; // Will be set based on URL parameter
+    let updateTimeout = null;
+    let lastLocationData = null;
+    
+    // DOM Elements
+    const orderIdInput = document.getElementById('orderId');
+    const acceptOrderBtn = document.getElementById('acceptOrderBtn');
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const statusSelect = document.getElementById('status');
+    const updateBtn = document.getElementById('updateBtn');
+    const autoUpdateBtn = document.getElementById('autoUpdateBtn');
+    const connectionStatusDiv = document.getElementById('connectionStatus');
+
+    // Get vendor ID from URL
+    function getVendorId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('vendorId');
+      if (!id) {
+        alert('Please provide a vendor ID in the URL (e.g., ?vendorId=123)');
+        return null;
+      }
+      return id;
+    }
+
+    // Accept order and connect
+    function acceptOrder() {
+      currentOrderId = orderIdInput.value.trim();
+      
+      if (!currentOrderId) {
+        alert('Please enter an Order ID');
+        return;
+      }
+      
+      if (!vendorId) {
+        alert('Vendor ID not found. Please check the URL parameters.');
+        return;
+      }
+      
+      // Identify to the socket server (in case it wasn't done at initialization)
+      socket.emit('identify', {
+        userType: 'vendor',
+        userId: vendorId
+      });
+      
+      // Join the room for this order
+      socket.emit('join-room', currentOrderId);
+      connected = true;
+      
+      // Visual feedback
+      connectionStatusDiv.textContent = `Status: Connected to order ${currentOrderId}`;
+      acceptOrderBtn.textContent = 'Order Accepted';
+      acceptOrderBtn.disabled = true;
+      orderIdInput.disabled = true;
+
+      // Setup event listeners for location fields
+      setupLocationListeners();
+    }
+    
+    // Setup event listeners for location inputs
+    function setupLocationListeners() {
+      // Use blur event (fires when the element loses focus) for text inputs
+      latitudeInput.addEventListener('blur', debouncedLocationUpdate);
+      longitudeInput.addEventListener('blur', debouncedLocationUpdate);
+      
+      // Use change event for the select (fires only when selection changes)
+      statusSelect.addEventListener('change', debouncedLocationUpdate);
+    }
+    
+    // Remove location listeners when disconnecting
+    function removeLocationListeners() {
+      latitudeInput.removeEventListener('blur', debouncedLocationUpdate);
+      longitudeInput.removeEventListener('blur', debouncedLocationUpdate);
+      statusSelect.removeEventListener('change', debouncedLocationUpdate);
+    }
+
+    // Debounced location update
+    function debouncedLocationUpdate() {
+      // Clear any pending updates
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+      
+      // Set a new timeout to update after a short delay
+      updateTimeout = setTimeout(() => {
+        if (connected && latitudeInput.value && longitudeInput.value) {
+          sendLocationUpdate();
+        }
+      }, 500); // 500ms delay to ensure we only send when user finishes typing
+    }
+
+    // Send location update
+    function sendLocationUpdate() {
+      if (!connected) {
+        alert('Please accept an order first');
+        return;
+      }
+      
+      const latitude = latitudeInput.value;
+      const longitude = longitudeInput.value;
+      const status = statusSelect.value;
+      
+      if (!latitude || !longitude) {
+        alert('Please enter latitude and longitude');
+        return;
+      }
+      
+      const locationData = {
+        orderId: currentOrderId,
+        vendorId: vendorId,
+        latitude: latitude,
+        longitude: longitude,
+        status: status,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      // Only send if data has changed
+      if (!lastLocationData || 
+          lastLocationData.latitude !== locationData.latitude || 
+          lastLocationData.longitude !== locationData.longitude || 
+          lastLocationData.status !== locationData.status) {
+        
+        socket.emit('location-update', locationData);
+        // Update last location data
+        lastLocationData = {...locationData};
+      }
+    }
+
+    // Toggle automatic updates
+    function toggleAutoUpdates() {
+      if (autoUpdateInterval) {
+        // Stop auto updates
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+        autoUpdateBtn.textContent = 'Start Auto Updates';
+      } else {
+        // Start auto updates (every 10 seconds)
+        autoUpdateInterval = setInterval(() => {
+          // Only update if we have valid coordinates
+          if (latitudeInput.value && longitudeInput.value) {
+            sendLocationUpdate();
+          }
+        }, 10000);
+        autoUpdateBtn.textContent = 'Stop Auto Updates';
+      }
+    }
+
+    // Initialize the app
+    function init() {
+      vendorId = getVendorId();
+      if (vendorId) {
+        // Identify to the socket server upon connection
+        socket.emit('identify', {
+          userType: 'vendor',
+          userId: vendorId
+        });
+      }
+    }
+
+    // Event listeners
+    acceptOrderBtn.addEventListener('click', acceptOrder);
+    updateBtn.addEventListener('click', sendLocationUpdate);
+    autoUpdateBtn.addEventListener('click', toggleAutoUpdates);
+    
+    // Socket connection events
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.IO server');
+      connected = false;
+      connectionStatusDiv.textContent = 'Status: Not connected';
+      acceptOrderBtn.disabled = false;
+      acceptOrderBtn.textContent = 'Accept Order';
+      orderIdInput.disabled = false;
+      
+      // Remove location listeners
+      removeLocationListeners();
+      
+      // Clear auto updates if active
+      if (autoUpdateInterval) {
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+        autoUpdateBtn.textContent = 'Start Auto Updates';
+      }
+    });
+    
+    // Optional: Use Geolocation API if available
+    document.addEventListener('DOMContentLoaded', function() {
+      init();
+      
+      if (navigator.geolocation) {
+        // Add a button to get current location
+        const geolocateBtn = document.createElement('button');
+        geolocateBtn.textContent = 'Use Current Location';
+        geolocateBtn.style.marginLeft = '10px';
+        latitudeInput.parentNode.appendChild(geolocateBtn);
+        
+        geolocateBtn.addEventListener('click', function() {
+          navigator.geolocation.getCurrentPosition(function(position) {
+            latitudeInput.value = position.coords.latitude;
+            longitudeInput.value = position.coords.longitude;
+            // Send update when getting current position
+            if (connected) {
+              sendLocationUpdate();
+            }
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

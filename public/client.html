@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    label {
+      display: inline-block;
+      width: 100px;
+      margin: 10px 0;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .status-display {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .location-updates {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-height: 200px;
+      background-color: #f8f9fa;
+    }
+    .status-preparing {
+      color: #fd7e14;
+    }
+    .status-on_the_way {
+      color: #007bff;
+    }
+    .status-nearby {
+      color: #6f42c1;
+    }
+    .status-arrived {
+      color: #28a745;
+    }
+  </style>
+</head>
+<body>
+  <h1>Client Dashboard</h1>
+  
+  <div>
+    <label for="orderId">Order ID:</label>
+    <input type="text" id="orderId" placeholder="Enter Order ID">
+    <button id="connectBtn">Connect</button>
+  </div>
+  
+  <h2>Vendor Location Updates</h2>
+  <div class="location-updates" id="locationUpdates">
+    <p>Waiting for updates...</p>
+  </div>
+  
+  <div id="connectionStatus" class="status-display">Status: Not connected</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Constants and state
+    const API_BASE_URL = 'http://localhost:3001/api/tracking';
+    const socket = io("http://localhost:3001");
+    let connected = false;
+    let currentOrderId = null;
+    let userId = null; // Will be set based on URL parameter
+    
+    // DOM Elements
+    const orderIdInput = document.getElementById('orderId');
+    const connectBtn = document.getElementById('connectBtn');
+    const locationUpdatesDiv = document.getElementById('locationUpdates');
+    const connectionStatusDiv = document.getElementById('connectionStatus');
+
+    // Get user ID from URL
+    function getUserId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('userId');
+      if (!id) {
+        alert('Please provide a user ID in the URL (e.g., ?userId=123)');
+        return null;
+      }
+      return id;
+    }
+
+    // Load active orders and automatically connect to the first one
+    async function loadActiveOrderAndConnect() {
+      if (!userId) return;
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/client/${userId}/active-orders`);
+        const data = await response.json();
+        
+        if (data.success && data.orders.length > 0) {
+          // Get the first active order
+          const firstOrder = data.orders[0];
+          currentOrderId = firstOrder.booking_id;
+          
+          // Fill the order ID input
+          orderIdInput.value = currentOrderId;
+          
+          // Auto-connect to this order
+          connectToOrder();
+        } else {
+          locationUpdatesDiv.innerHTML = '<p>No active orders found</p>';
+        }
+      } catch (error) {
+        console.error('Error loading active orders:', error);
+        locationUpdatesDiv.innerHTML = '<p>Failed to load active orders</p>';
+      }
+    }
+
+    // Connect to an order
+    function connectToOrder() {
+      currentOrderId = orderIdInput.value.trim();
+      
+      if (!currentOrderId) {
+        alert('Please enter an Order ID');
+        return;
+      }
+      
+      // Join the room for this order
+      socket.emit('join-room', currentOrderId);
+      connected = true;
+      
+      // Visual feedback
+      connectionStatusDiv.textContent = `Status: Connected to order ${currentOrderId}`;
+      connectBtn.textContent = 'Connected';
+      connectBtn.disabled = true;
+      
+      // Clear previous updates
+      locationUpdatesDiv.innerHTML = '<p>Waiting for vendor location updates...</p>';
+    }
+
+    // Handle location updates from vendor
+    function handleLocationUpdate(data) {
+      // Format timestamp
+      const timestamp = data.timestamp || new Date().toLocaleTimeString();
+      
+      // Create status class based on vendor status
+      const statusClass = `status-${data.status}`;
+      
+      // Format status text
+      let statusText = "Unknown";
+      switch(data.status) {
+        case 'preparing':
+          statusText = "Preparing your order";
+          break;
+        case 'on_the_way':
+          statusText = "On the way to your location";
+          break;
+        case 'nearby':
+          statusText = "Nearby your location";
+          break;
+        case 'arrived':
+          statusText = "Arrived at your location";
+          break;
+      }
+      
+      // Add update to the updates container
+      const updateElement = document.createElement('div');
+      updateElement.innerHTML = `
+        <p><strong>${timestamp}</strong>: Vendor is <span class="${statusClass}">${statusText}</span></p>
+        <p>Location: ${data.latitude}, ${data.longitude}</p>
+        <hr>
+      `;
+      
+      // Insert at the top
+      if (locationUpdatesDiv.firstChild) {
+        locationUpdatesDiv.insertBefore(updateElement, locationUpdatesDiv.firstChild);
+      } else {
+        locationUpdatesDiv.appendChild(updateElement);
+      }
+    }
+
+    // Initialize the app
+    function init() {
+      userId = getUserId();
+      if (userId) {
+        // Identify to the socket server
+        socket.emit('identify', {
+          userType: 'client',
+          userId: userId
+        });
+        
+        // Load active order and auto-connect
+        loadActiveOrderAndConnect();
+      }
+    }
+
+    // Event listeners
+    connectBtn.addEventListener('click', connectToOrder);
+    
+    // Socket connection events
+    socket.on('connect', () => {
+      console.log('Connected to Socket.IO server');
+      if (userId) {
+        socket.emit('identify', {
+          userType: 'client',
+          userId: userId
+        });
+      }
+    });
+    
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.IO server');
+      connected = false;
+      connectionStatusDiv.textContent = 'Status: Not connected';
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Connect';
+    });
+    
+    socket.on('location-update', (data) => {
+      console.log('Received location update:', data);
+      if (connected && data.orderId === currentOrderId) {
+        handleLocationUpdate(data);
+      }
+    });
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

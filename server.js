@@ -28,7 +28,7 @@ const warehouseRoutes = require('./routes/warehouseRoutes');
 const cartRoutes = require('./routes/vendor/cartRoutes');
 const orderRequestRoutes = require('./routes/vendor/orderRequestRoutes');
 const billingRoutes = require('./routes/vendor/billingRoutes');
-const OrderRequestRoutes = require('./routes/vendor/NotificationRoutes');
+const NotificationRoutes = require('./routes/vendor/NotificationRoutes');
 
 
 
@@ -79,7 +79,7 @@ app.use('/api/v1/warehouses', warehouseRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/v1/request', orderRequestRoutes);
 app.use('/api/v1/billing', billingRoutes);
-app.use('/api/v1/notification', OrderRequestRoutes);
+app.use('/api/v1/notification', NotificationRoutes);
 
 
 

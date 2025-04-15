@@ -1,5 +1,6 @@
 // controllers/OrderRequestController.js
 const OrderRequest = require('../../models/Vendor/Order_request/OrderRequest');
+const axios = require('axios'); // You'll need to install this package
 
 class OrderRequestController {
   // Create a new order request
@@ -70,6 +71,31 @@ class OrderRequestController {
           success: false, 
           error: result.error 
         });
+      }
+      
+      // If the order was accepted, initialize real-time tracking
+      if (status === 'accepted') {
+        try {
+          // Get order details to get booking_id, vendor_id, and user_id
+          const orderDetails = await OrderRequest.getOrderRequestDetails(id);
+          
+          if (orderDetails.success) {
+            const { booking_id, vendor_id } = orderDetails.request;
+            const user_id = orderDetails.request.user_id || orderDetails.request.userId;
+            
+            // Call the tracking server API to initialize real-time tracking
+            await axios.post('http://localhost:3001/api/tracking/order-accepted', {
+              orderId: booking_id,
+              vendorId: vendor_id,
+              userId: user_id
+            });
+            
+            console.log(`Real-time tracking initialized for order ${booking_id}`);
+          }
+        } catch (trackingError) {
+          // Log the error but don't fail the request
+          console.error('Error initializing real-time tracking:', trackingError);
+        }
       }
       
       return res.status(200).json({ 
