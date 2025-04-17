@@ -56,12 +56,27 @@
     .status-arrived {
       color: #28a745;
     }
+    .user-info {
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Client Dashboard</h1>
   
-  <div>
+  <!-- User info display -->
+  <div class="user-info" id="userInfo">
+    <p>Loading user information...</p>
+  </div>
+  
+  <!-- Order connect form - will be hidden by default once we auto-connect -->
+  <div id="orderConnectForm" class="hidden">
     <label for="orderId">Order ID:</label>
     <input type="text" id="orderId" placeholder="Enter Order ID">
     <button id="connectBtn">Connect</button>
@@ -72,7 +87,7 @@
     <p>Waiting for updates...</p>
   </div>
   
-  <div id="connectionStatus" class="status-display">Status: Not connected</div>
+  <div id="connectionStatus" class="status-display">Status: Connecting...</div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -81,30 +96,57 @@
     const socket = io("http://localhost:3001");
     let connected = false;
     let currentOrderId = null;
-    let userId = null; // Will be set based on URL parameter
+    let userId = null;
     
     // DOM Elements
     const orderIdInput = document.getElementById('orderId');
     const connectBtn = document.getElementById('connectBtn');
     const locationUpdatesDiv = document.getElementById('locationUpdates');
     const connectionStatusDiv = document.getElementById('connectionStatus');
+    const userInfoDiv = document.getElementById('userInfo');
+    const orderConnectForm = document.getElementById('orderConnectForm');
 
-    // Get user ID from URL
+    // Get user ID from server-injected variable instead of URL
     function getUserId() {
+      // Use the server-injected variable if available
+      if (typeof SERVER_USER_ID !== 'undefined' && SERVER_USER_ID) {
+        console.log('Using userId from server variable:', SERVER_USER_ID);
+        return SERVER_USER_ID;
+      }
+      
+      // Fallback to URL parameter if needed
       const urlParams = new URLSearchParams(window.location.search);
       const id = urlParams.get('userId');
       if (!id) {
         alert('Please provide a user ID in the URL (e.g., ?userId=123)');
         return null;
       }
+      console.log('Using userId from URL parameter:', id);
       return id;
     }
 
     // Load active orders and automatically connect to the first one
     async function loadActiveOrderAndConnect() {
       if (!userId) return;
+
+      // First check if we have a server-provided order ID
+      if (typeof SERVER_ACTIVE_ORDER_ID !== 'undefined' && SERVER_ACTIVE_ORDER_ID) {
+        console.log('Using active order from server variable:', SERVER_ACTIVE_ORDER_ID);
+        currentOrderId = SERVER_ACTIVE_ORDER_ID;
+        
+        if (currentOrderId) {
+          // Update UI with order info
+          userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>Active Order ID: ${currentOrderId}</p>`;
+          
+          // Auto-connect to this order
+          connectToOrder(currentOrderId);
+          return;
+        }
+      }
       
+      // If no server-provided order ID, fetch from API
       try {
+        console.log('Fetching active orders from API for user:', userId);
         const response = await fetch(`${API_BASE_URL}/client/${userId}/active-orders`);
         const data = await response.json();
         
@@ -113,28 +155,44 @@
           const firstOrder = data.orders[0];
           currentOrderId = firstOrder.booking_id;
           
-          // Fill the order ID input
+          console.log('Found active order from API:', currentOrderId, 'source:', data.source || 'unknown');
+          
+          // Update UI with order info
+          userInfoDiv.innerHTML = `
+            <p>User ID: ${userId}</p>
+            <p>Active Order ID: ${currentOrderId}</p>
+            <p>Source: ${data.source || 'API'}</p>
+          `;
+          
+          // Fill the order ID input (in case form is shown)
           orderIdInput.value = currentOrderId;
           
           // Auto-connect to this order
-          connectToOrder();
+          connectToOrder(currentOrderId);
         } else {
+          userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>No active orders found</p>`;
           locationUpdatesDiv.innerHTML = '<p>No active orders found</p>';
+          orderConnectForm.classList.remove('hidden'); // Show form if no orders
         }
       } catch (error) {
         console.error('Error loading active orders:', error);
         locationUpdatesDiv.innerHTML = '<p>Failed to load active orders</p>';
+        userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>Error loading orders</p>`;
+        orderConnectForm.classList.remove('hidden'); // Show form on error
       }
     }
 
     // Connect to an order
-    function connectToOrder() {
-      currentOrderId = orderIdInput.value.trim();
+    function connectToOrder(orderId = null) {
+      // Use passed orderId or get from input
+      currentOrderId = orderId || orderIdInput.value.trim();
       
       if (!currentOrderId) {
         alert('Please enter an Order ID');
         return;
       }
+      
+      console.log('Connecting to order room:', currentOrderId);
       
       // Join the room for this order
       socket.emit('join-room', currentOrderId);
@@ -142,8 +200,9 @@
       
       // Visual feedback
       connectionStatusDiv.textContent = `Status: Connected to order ${currentOrderId}`;
-      connectBtn.textContent = 'Connected';
-      connectBtn.disabled = true;
+      
+      // Hide the connect form once connected
+      orderConnectForm.classList.add('hidden');
       
       // Clear previous updates
       locationUpdatesDiv.innerHTML = '<p>Waiting for vendor location updates...</p>';
@@ -174,6 +233,8 @@
           break;
       }
       
+      console.log(`Received ${data.status} update at ${timestamp} for order ${data.orderId}`);
+      
       // Add update to the updates container
       const updateElement = document.createElement('div');
       updateElement.innerHTML = `
@@ -192,8 +253,13 @@
 
     // Initialize the app
     function init() {
+      // Get userId from server-injected variable
       userId = getUserId();
+      
       if (userId) {
+        console.log('Initializing client dashboard for userId:', userId);
+        userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>Connecting...</p>`;
+        
         // Identify to the socket server
         socket.emit('identify', {
           userType: 'client',
@@ -202,11 +268,14 @@
         
         // Load active order and auto-connect
         loadActiveOrderAndConnect();
+      } else {
+        userInfoDiv.innerHTML = `<p>Error: No valid user ID found</p>`;
+        connectionStatusDiv.textContent = 'Status: Not connected';
       }
     }
 
     // Event listeners
-    connectBtn.addEventListener('click', connectToOrder);
+    connectBtn.addEventListener('click', () => connectToOrder());
     
     // Socket connection events
     socket.on('connect', () => {
@@ -223,15 +292,52 @@
       console.log('Disconnected from Socket.IO server');
       connected = false;
       connectionStatusDiv.textContent = 'Status: Not connected';
-      connectBtn.disabled = false;
-      connectBtn.textContent = 'Connect';
+      orderConnectForm.classList.remove('hidden');
+    });
+    
+    socket.on('identification-successful', (data) => {
+      console.log('Identification successful:', data);
+      userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>Successfully identified with server</p>`;
+    });
+    
+    socket.on('joined-order', (data) => {
+      console.log('Joined order room:', data);
+      currentOrderId = data.orderId;
+      userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>Active Order ID: ${currentOrderId}</p>`;
+      connectionStatusDiv.textContent = `Status: Connected to order ${currentOrderId}`;
+      connected = true;
+      
+      // Hide the connect form
+      orderConnectForm.classList.add('hidden');
+      
+      // If there was a last location, show it
+      if (data.lastLocation) {
+        handleLocationUpdate(data.lastLocation);
+      }
+    });
+    
+    socket.on('order-assigned', (data) => {
+      console.log('New order assigned:', data);
+      // Update UI if not already connected to an order
+      if (!connected) {
+        currentOrderId = data.orderId;
+        userInfoDiv.innerHTML = `<p>User ID: ${userId}</p><p>New Order Assigned: ${currentOrderId}</p>`;
+        
+        // Auto-connect to this order
+        connectToOrder(currentOrderId);
+      }
     });
     
     socket.on('location-update', (data) => {
       console.log('Received location update:', data);
-      if (connected && data.orderId === currentOrderId) {
+      if (data.orderId === currentOrderId) {
         handleLocationUpdate(data);
       }
+    });
+    
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      connectionStatusDiv.textContent = `Error: ${error.message}`;
     });
     
     // Initialize on page load
