@@ -29,6 +29,9 @@ const cartRoutes = require('./routes/vendor/cartRoutes');
 const orderRequestRoutes = require('./routes/vendor/orderRequestRoutes');
 const billingRoutes = require('./routes/vendor/billingRoutes');
 const NotificationRoutes = require('./routes/vendor/NotificationRoutes');
+const notificationRoutes = require('./routes/notificationroutes');
+
+
 
 
 
@@ -80,6 +83,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/v1/request', orderRequestRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/notification', NotificationRoutes);
+// Add the notification routes to your Express app
+app.use('/api/v1/notifisent', notificationRoutes);
 
 
 

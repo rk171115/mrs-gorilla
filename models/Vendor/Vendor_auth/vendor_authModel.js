@@ -43,6 +43,48 @@ class VendorAuthModel {
     }
   }
 
+  // Update last login time and FCM token
+  static async updateLastLoginAndFCMToken(vendor_details_id, fcm_token) {
+    try {
+      // Update FCM token in vendor_details
+      await pool.query(
+        'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
+        [fcm_token, vendor_details_id]
+      );
+      
+      // Update last login in vendor_auth
+      await pool.query(
+        'UPDATE vendor_auth SET last_login = NOW() WHERE vendor_details_id = ?',
+        [vendor_details_id]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating last login and FCM token:', error);
+      throw error;
+    }
+  }
+
+  // Update last login time and FCM token by ID
+  static async updateLastLoginAndFCMTokenById(vendor_details_id, fcm_token) {
+    try {
+      // Update FCM token in vendor_details
+      await pool.query(
+        'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
+        [fcm_token, vendor_details_id]
+      );
+      
+      // Update last login in vendor_auth
+      await pool.query(
+        'UPDATE vendor_auth SET last_login = NOW() WHERE vendor_details_id = ?',
+        [vendor_details_id]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating last login and FCM token by ID:', error);
+      throw error;
+    }
+  }
+
   // Store OTP in database (temporarily)
   static async storeOTP(phone_no, otp) {
     try {
@@ -61,15 +103,16 @@ class VendorAuthModel {
     try {
       await connection.beginTransaction();
 
-      // Insert into vendor_details first
+      // Insert into vendor_details first, including fcm_token
       const [vendorResult] = await connection.query(
-        'INSERT INTO vendor_details (Name, AadharNo, PanCardNo, Dl_no, cart_type, Permanent_address, VehicleNo, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO vendor_details (Name, AadharNo, PanCardNo, Dl_no, cart_type, fcm_token, Permanent_address, VehicleNo, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           vendorData.Name,
           vendorData.AadharNo || null,
           vendorData.PanCardNo || null,
           vendorData.Dl_no || null,
           vendorData.cart_type || null,
+          vendorData.fcm_token || null,
           vendorData.Permanent_address || null,
           vendorData.VehicleNo || null,
           vendorData.image_url || null
@@ -133,6 +176,7 @@ class VendorAuthModel {
           vd.Name, 
           vd.VehicleNo,
           vd.cart_type,
+          vd.fcm_token,
           vd.image_url
         FROM vendor_auth va 
         JOIN vendor_details vd ON va.vendor_details_id = vd.id 

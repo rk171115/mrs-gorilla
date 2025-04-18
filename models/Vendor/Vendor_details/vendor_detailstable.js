@@ -11,6 +11,7 @@ class VendorDetailsTable {
         PanCardNo VARCHAR(10) DEFAULT NULL,
         Dl_no VARCHAR(20) DEFAULT NULL,
         cart_type VARCHAR(50) DEFAULT NULL,
+        fcm_token VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
         Permanent_address TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
         VehicleNo VARCHAR(20) DEFAULT NULL,
         image_url TEXT DEFAULT NULL,
@@ -28,7 +29,7 @@ class VendorDetailsTable {
     try {
       // First check if the column already exists
       const [columns] = await pool.query('SHOW COLUMNS FROM vendor_details LIKE "warehouse_id"');
-      
+
       if (columns.length === 0) {
         // Column doesn't exist, so add it with the foreign key
         const query = `
@@ -41,7 +42,7 @@ class VendorDetailsTable {
       } else {
         console.log('warehouse_id column already exists in vendor_details table');
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error modifying vendor_details table:', error);

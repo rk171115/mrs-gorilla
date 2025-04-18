@@ -6,7 +6,7 @@ const VendorAuthModel = require('../../models/Vendor/Vendor_auth/vendor_authMode
 const otpStore = new Map();
 
 class VendorAuthController {
-  // Check if phone number exists (new method)
+  // Check if phone number exists (unchanged)
   static async checkPhoneNumber(req, res) {
     try {
       const { phone_no } = req.body;
@@ -37,10 +37,10 @@ class VendorAuthController {
     }
   }
 
-  // Send OTP to vendor's phone (modified to only be used for login)
+  // Send OTP to vendor's phone (modified to store FCM token)
   static async sendOTP(req, res) {
     try {
-      const { phone_no } = req.body;
+      const { phone_no, fcm_token } = req.body;
       
       if (!phone_no) {
         return res.status(400).json({ error: "Phone number is required" });
@@ -59,9 +59,10 @@ class VendorAuthController {
       // Generate a 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000);
       
-      // Store OTP in memory with 5 minutes expiry
+      // Store OTP in memory with 5 minutes expiry and FCM token
       otpStore.set(phone_no, { 
         otp, 
+        fcm_token,
         expiresAt: Date.now() + 5 * 60 * 1000 
       });
       
@@ -85,7 +86,6 @@ class VendorAuthController {
       } catch (smsError) {
         console.error("SMS API Error:", smsError);
         // For development, we'll continue even if SMS fails
-        // In production, you might want to handle this differently
       }
       
       res.status(200).json({ 
@@ -98,7 +98,7 @@ class VendorAuthController {
     }
   }
 
-  // Verify OTP for login (only)
+  // Verify OTP for login (modified to update FCM token)
   static async verifyLoginOTP(req, res) {
     try {
       const { phone_no, otp } = req.body;
@@ -120,6 +120,9 @@ class VendorAuthController {
         return res.status(400).json({ error: "OTP expired" });
       }
       
+      // Get FCM token from stored data
+      const { fcm_token } = storedOtpData;
+      
       // Delete OTP after successful verification
       otpStore.delete(phone_no);
       
@@ -130,8 +133,8 @@ class VendorAuthController {
         return res.status(404).json({ error: "Vendor not registered" });
       }
       
-      // Update last login time
-      await VendorAuthModel.updateLastLogin(vendorAuth.id);
+      // Update last login time and FCM token
+      await VendorAuthModel.updateLastLoginAndFCMToken(vendorAuth.vendor_details_id, fcm_token);
       
       // Get vendor details
       const vendorDetails = await VendorAuthModel.getVendorDetailsById(vendorAuth.vendor_details_id);
@@ -152,10 +155,10 @@ class VendorAuthController {
     }
   }
 
-  // Register new vendor (no OTP verification required)
+  // Register new vendor (modified to add FCM token)
   static async registerVendor(req, res) {
     try {
-      const { phone_no, vendorData } = req.body;
+      const { phone_no, vendorData, fcm_token } = req.body;
       
       if (!phone_no || !vendorData || !vendorData.Name) {
         return res.status(400).json({ error: "Phone number and vendor name are required" });
@@ -168,8 +171,14 @@ class VendorAuthController {
         return res.status(409).json({ error: "Phone number already registered" });
       }
       
+      // Add FCM token to vendor data
+      const vendorDataWithFCM = {
+        ...vendorData,
+        fcm_token
+      };
+      
       // Register new vendor
-      const result = await VendorAuthModel.registerVendor(vendorData, { phone_no });
+      const result = await VendorAuthModel.registerVendor(vendorDataWithFCM, { phone_no });
       
       res.status(201).json({
         message: "Vendor registered successfully!",
@@ -183,10 +192,10 @@ class VendorAuthController {
     }
   }
 
-  // Verify vendorId and passkey for direct login
+  // Verify vendorId and passkey for direct login (modified to update FCM token)
   static async verifyCredentials(req, res) {
     try {
-      const { vendorId, passkey } = req.body;
+      const { vendorId, passkey, fcm_token } = req.body;
       
       if (!vendorId || !passkey) {
         return res.status(400).json({ error: "Vendor ID and passkey are required" });
@@ -199,8 +208,8 @@ class VendorAuthController {
         return res.status(401).json({ error: "Invalid credentials" });
       }
       
-      // Update last login time
-      await VendorAuthModel.updateLastLogin(vendor.id);
+      // Update last login time and FCM token
+      await VendorAuthModel.updateLastLoginAndFCMTokenById(vendor.vendor_details_id, fcm_token);
       
       res.status(200).json({
         message: "Login successful!",

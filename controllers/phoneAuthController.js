@@ -8,12 +8,12 @@ class PhoneAuthController {
   // Generate OTP and store in memory map
   static async sendOTP(req, res) {
     try {
-      const { phone_number } = req.body;
+      const { phone_number, fcm_token } = req.body;
       if (!phone_number) return res.status(400).json({ success: false, error: "Phone number is required" });
 
       // Generate a 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000);
-      otpStore.set(phone_number, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+      otpStore.set(phone_number, { otp, expiresAt: Date.now() + 5 * 60 * 1000, fcm_token });
 
       // Send OTP via Fast2SMS API
       const response = await axios.post(
@@ -60,6 +60,9 @@ class PhoneAuthController {
         return res.status(400).json({ success: false, error: "OTP expired" });
       }
 
+      // Get FCM token from stored data
+      const { fcm_token } = storedOtpData;
+
       // Delete OTP after successful verification
       otpStore.delete(phone_number);
 
@@ -73,17 +76,17 @@ class PhoneAuthController {
       let isNewUser = false;
 
       if (existingUsers.length > 0) {
-        // User Exists → Log them in
+        // User Exists → Log them in and update FCM token
         userId = existingUsers[0].id;
         await pool.query(
-          `UPDATE users SET last_login = NOW() WHERE phone_number = ?`,
-          [phone_number]
+          `UPDATE users SET last_login = NOW(), fcm_token = ? WHERE phone_number = ?`,
+          [fcm_token, phone_number]
         );
       } else {
-        // User Does Not Exist → Register them
+        // User Does Not Exist → Register them with FCM token
         const [newUser] = await pool.query(
-          `INSERT INTO users (phone_number, is_verified, created_at, updated_at) VALUES (?, TRUE, NOW(), NOW())`,
-          [phone_number]
+          `INSERT INTO users (phone_number, fcm_token, is_verified, created_at, updated_at) VALUES (?, ?, TRUE, NOW(), NOW())`,
+          [phone_number, fcm_token]
         );
         userId = newUser.insertId;
         isNewUser = true;
@@ -135,8 +138,5 @@ class PhoneAuthController {
     }
   }
 }
-
-
-
 
 module.exports = PhoneAuthController;

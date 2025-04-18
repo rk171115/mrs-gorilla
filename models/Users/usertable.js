@@ -9,6 +9,7 @@ class UserTable {
         full_name VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
         email VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
         is_verified TINYINT(1) DEFAULT 0,
+        fcm_token VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         last_login TIMESTAMP NULL DEFAULT NULL,
@@ -25,7 +26,7 @@ class UserTable {
     await pool.query(query);
     return true;
   }
-
+  
   static async getTableInfo() {
     const query = 'DESCRIBE users';
     const [rows] = await pool.query(query);
