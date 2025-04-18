@@ -15,6 +15,36 @@ class ApiController {
     return `${BASE_URL}/${cleanPath}`;
   }
 
+  // Method to get all items
+  static async getAllItems(req, res) {
+    try {
+      const query = `SELECT name, image_url, image_url_2, price_per_unit, description FROM items`;
+      const [items] = await pool.query(query);
+      
+      // Safely map items to include full image URLs
+      const formattedItems = items.map(item => {
+        return {
+          ...item,
+          image_url: ApiController.getFullImageUrl(item.image_url),
+          image_url_2: ApiController.getFullImageUrl(item.image_url_2)
+        };
+      });
+      
+      return res.status(200).json({
+        success: true,
+        count: formattedItems.length,
+        data: formattedItems
+      });
+    } catch (error) {
+      console.error('Error fetching all items:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error occurred',
+        details: error.message
+      });
+    }
+  }
+
   // Method to search for items by name with enhanced flexible matching
   static async searchItem(req, res) {
     try {
@@ -22,23 +52,7 @@ class ApiController {
       
       // Return all items if search is empty
       if (!name || name.trim() === '') {
-        const query = `SELECT name, image_url, image_url_2, price_per_unit, description FROM items`;
-        const [items] = await pool.query(query);
-        
-        // Safely map items to include full image URLs
-        const formattedItems = items.map(item => {
-          return {
-            ...item,
-            image_url: ApiController.getFullImageUrl(item.image_url),
-            image_url_2: ApiController.getFullImageUrl(item.image_url_2)
-          };
-        });
-        
-        return res.status(200).json({
-          success: true,
-          count: formattedItems.length,
-          data: formattedItems
-        });
+        return await ApiController.getAllItems(req, res);
       }
       
       // For more comprehensive search:
