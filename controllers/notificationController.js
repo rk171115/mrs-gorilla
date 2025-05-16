@@ -4,7 +4,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Firebase Service Account
-const SERVICE_ACCOUNT = require('../zdeliver-acc55-firebase-adminsdk-fbsvc-f439bed9a3.json');
+const SERVICE_ACCOUNT = require('../zdeliver-acc55-firebase-adminsk-fbsvc-f439bed9a3.json');
 
 // MySQL Connection Pool
 const pool = mysql.createPool({
@@ -35,6 +35,8 @@ async function sendFirebaseNotification(token, data) {
     const accessToken = await getFirebaseAccessToken();
     const projectId = SERVICE_ACCOUNT.project_id;
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+//     console.log('Project ID:', projectId);
+// console.log('FCM URL:', fcmUrl);
 
     const stringData = {};
     Object.keys(data).forEach(key => {
@@ -66,6 +68,16 @@ async function sendFirebaseNotification(token, data) {
       }
     };
 
+    // Log the Firebase payload to console
+    console.log('Firebase Notification Payload:', JSON.stringify({
+      token: token,
+      notification: {
+        title: data.title,
+        body: data.body
+      },
+      data: stringData
+    }, null, 2));
+
     const response = await axios.post(fcmUrl, message, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -82,6 +94,23 @@ async function sendFirebaseNotification(token, data) {
       stack: error.stack
     });
     throw new Error(`Firebase notification failed: ${error.response?.data?.error?.message || error.message}`);
+  }
+}
+
+// Helper: Store notification in database
+async function storeNotification(receiverType, userId, vendorId, bookingOrderId, title, description) {
+  try {
+    const query = `
+      INSERT INTO notifications 
+      (receiver_type, user_id, vendor_id, booking_order_id, title, description) 
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    
+    await pool.query(query, [receiverType, userId, vendorId, bookingOrderId, title, description]);
+    return true;
+  } catch (error) {
+    console.error('Error storing notification in database:', error);
+    throw error;
   }
 }
 
@@ -134,7 +163,7 @@ exports.sendUserToVendorNotification = async (req, res) => {
     // Create notification content
     const notificationData = {
       title: bookingOrder.booking_type.toUpperCase(),
-      body: `${user.full_name}\nAddress: ${bookingOrder.address}\nOrder ID: ${bookingOrder.id}`,
+      body: `${user.full_name} is calling for ${bookingOrder.booking_type.toUpperCase()} and the booking address is ${bookingOrder.address}`,
       booking_id: String(bookingOrder.id),
       address: bookingOrder.address,
       notification_type: 'order_request',
@@ -142,8 +171,18 @@ exports.sendUserToVendorNotification = async (req, res) => {
       vendor_id: String(vendor.id)
     };
 
-    // Send notification (we don't need the Firebase response)
+    // Send notification through Firebase
     await sendFirebaseNotification(vendor.fcm_token, notificationData);
+    
+    // Store notification in database (receiver is vendor)
+    await storeNotification(
+      'vendor', 
+      user_id, 
+      vendor_id, 
+      booking_order_id, 
+      notificationData.title, 
+      notificationData.body
+    );
 
     // Simplified response
     return res.status(200).json({
@@ -222,8 +261,18 @@ exports.sendVendorToUserNotification = async (req, res) => {
       vendor_name: vendorName
     };
 
-    // Send notification (we don't need the Firebase response)
+    // Send notification through Firebase
     await sendFirebaseNotification(user.fcm_token, notificationData);
+    
+    // Store notification in database (receiver is user)
+    await storeNotification(
+      'user', 
+      user_id, 
+      vendor_id, 
+      booking_order_id, 
+      notificationData.title, 
+      notificationData.body
+    );
 
     // Simplified response
     return res.status(200).json({
@@ -241,4 +290,9 @@ exports.sendVendorToUserNotification = async (req, res) => {
       error: error.message
     });
   }
+};
+
+module.exports = {
+  sendUserToVendorNotification: exports.sendUserToVendorNotification,
+  sendVendorToUserNotification: exports.sendVendorToUserNotification
 };

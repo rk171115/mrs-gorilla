@@ -15,10 +15,10 @@ class BasketController {
       
       // Validate items format
       for (const item of items) {
-        if (!item.item_id || !item.quantity || item.quantity <= 0) {
+        if (!item.item_id) {
           return res.status(400).json({
             success: false,
-            message: 'Each item must have item_id and a positive quantity.'
+            message: 'Each item must have item_id.'
           });
         }
       }
@@ -55,29 +55,6 @@ class BasketController {
       
       const baskets = await Basket.getUserBaskets(user_id);
       
-      // If no baskets exist, return a default basket
-      // if (baskets.length === 0) {
-      //   const defaultBasket = {
-      //     basket_id: 0,
-      //     basket_name: "Good Morning basket",
-      //     icon_image: "default_basket_icon.png",
-      //     weekday: "everyday",
-      //     items: [
-      //       { item_name: "Onion", quantity: 1, unit: "Kg", price_per_unit: 20 },
-      //       { item_name: "Cauliflower", quantity: 2, unit: "Kg", price_per_unit: 30 },
-      //       { item_name: "Brinjal", quantity: 1, unit: "Kg", price_per_unit: 25 },
-      //       { item_name: "Carrot", quantity: 2, unit: "Kg", price_per_unit: 25 },
-      //       { item_name: "Bottle gourd", quantity: 1, unit: "Kg", price_per_unit: 30 }
-      //     ]
-      //   };
-        
-      //   return res.status(200).json({
-      //     success: true,
-      //     baskets: [defaultBasket],
-      //     isDefaultBasket: true
-      //   });
-      // }
-      
       // Format response to match the UI with additional details
       const formattedBaskets = await Promise.all(baskets.map(async basket => {
         const basketDetails = await Basket.getBasketDetails(user_id, basket.basket_name);
@@ -88,7 +65,6 @@ class BasketController {
           weekday: basket.weekday,
           items: basketDetails.map(item => ({
             item_name: item.item_name,
-            quantity: item.quantity,
             unit: item.unit,
             price_per_unit: item.price
           }))
@@ -140,7 +116,6 @@ class BasketController {
           detail_id: item.detail_id,
           item_id: item.item_id,
           item_name: item.item_name,
-          quantity: item.quantity,
           unit: item.unit,
           price_per_unit: item.price,
           item_image: item.item_image
@@ -156,29 +131,6 @@ class BasketController {
       return res.status(500).json({
         success: false,
         message: 'Failed to get basket details',
-        error: error.message
-      });
-    }
-  }
-  
-  static async updateBasketItem(req, res) {
-    try {
-      const { detail_id, quantity } = req.body;
-      
-      if (!detail_id || !quantity || quantity <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Detail ID and a positive quantity are required'
-        });
-      }
-      
-      const result = await Basket.updateBasketItem(detail_id, quantity);
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Error updating basket item:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update basket item',
         error: error.message
       });
     }

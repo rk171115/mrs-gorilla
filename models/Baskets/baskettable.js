@@ -23,7 +23,7 @@ class BasketTable {
         detail_id INT(11) NOT NULL AUTO_INCREMENT,
         basket_id INT(11) NOT NULL,
         item_id INT(11) NOT NULL,
-        quantity INT(11) NOT NULL DEFAULT 1,
+        
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (detail_id),

@@ -18,11 +18,11 @@ class Basket {
       
       const basket_id = basketResult.insertId;
       
-      // Insert basket details
+      // Insert basket details - without quantity
       const basketDetailsQueries = items.map(item => 
         connection.query(
-          'INSERT INTO basket_details (basket_id, item_id, quantity) VALUES (?, ?, ?)',
-          [basket_id, item.item_id, item.quantity]
+          'INSERT INTO basket_details (basket_id, item_id) VALUES (?, ?)',
+          [basket_id, item.item_id]
         )
       );
       
@@ -66,7 +66,6 @@ class Basket {
         b.weekday,
         i.id AS item_id,
         i.name AS item_name,
-        bd.quantity,
         i.price_per_unit AS price,
         i.unit,
         i.image_url AS item_image
@@ -77,21 +76,6 @@ class Basket {
     `;
     const [rows] = await pool.query(query, [user_id, basket_name]);
     return rows;
-  }
-
-  static async updateBasketItem(detail_id, quantity) {
-    const query = `
-      UPDATE basket_details 
-      SET quantity = ? 
-      WHERE detail_id = ?
-    `;
-    const [result] = await pool.query(query, [quantity, detail_id]);
-    
-    return {
-      success: true,
-      message: 'Basket item updated successfully',
-      affectedRows: result.affectedRows
-    };
   }
 
   static async deleteBasketItem(detail_id) {

@@ -7,13 +7,11 @@ class OrderBasket {
       // Begin transaction
       await pool.query('START TRANSACTION');
 
-      // Get basket items using the corrected query with basket_details
+      // Get basket items
       const basketItemsQuery = `
         SELECT 
           b.basket_id,
           bd.item_id,
-          bd.quantity,
-          i.price_per_unit,
           i.name as item_name
         FROM baskets b
         JOIN basket_details bd ON b.basket_id = bd.basket_id
@@ -30,31 +28,16 @@ class OrderBasket {
       // Get a reference basket_id (all items share the same basket_name)
       const basket_id = basketItems[0].basket_id;
 
-      // Calculate total price from items
-      const total_price = basketItems.reduce((sum, item) => sum + (item.price_per_unit * item.quantity), 0);
-
-      // Create order in booking_order table
+      // Create order in booking_order table without total_price
       const orderQuery = `
         INSERT INTO booking_order
-        (user_id, booking_type, total_price, created_at, updated_at, basket_id)
-        VALUES (?, 'basket', ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), ?)
+        (user_id, booking_type, created_at, updated_at, basket_id)
+        VALUES (?, 'customized cart', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), ?)
       `;
-      const [orderResult] = await pool.query(orderQuery, [user_id, total_price, basket_id]);
+      const [orderResult] = await pool.query(orderQuery, [user_id, basket_id]);
       const order_id = orderResult.insertId;
 
-      // Create booking details
-      const bookingDetailsQuery = `
-        INSERT INTO booking_details 
-        (booking_id, item_id, quantity, price_per_unit)
-        VALUES ?
-      `;
-      const bookingDetailsValues = basketItems.map(item => [
-        order_id, 
-        item.item_id, 
-        item.quantity, 
-        item.price_per_unit
-      ]);
-      await pool.query(bookingDetailsQuery, [bookingDetailsValues]);
+      // No longer inserting into booking_details table
 
       // Commit transaction
       await pool.query('COMMIT');
@@ -63,11 +46,8 @@ class OrderBasket {
         success: true,
         message: "Order successfully created",
         order_id,
-        total_price,
         items: basketItems.map(item => ({
           item_id: item.item_id,
-          quantity: item.quantity,
-          price: item.price_per_unit,
           item_name: item.item_name
         }))
       };
@@ -82,7 +62,6 @@ class OrderBasket {
     const query = `
       SELECT 
         bo.id as order_id,
-        bo.total_price,
         bo.created_at,
         bo.basket_id,
         b.basket_name,
@@ -91,7 +70,7 @@ class OrderBasket {
       JOIN baskets b ON bo.basket_id = b.basket_id
       JOIN basket_details bd ON b.basket_id = bd.basket_id
       JOIN items i ON bd.item_id = i.id
-      WHERE bo.user_id = ? AND bo.booking_type = 'basket'
+      WHERE bo.user_id = ? AND bo.booking_type = 'customized cart'
       GROUP BY bo.id
       ORDER BY bo.created_at DESC
     `;
@@ -103,20 +82,17 @@ class OrderBasket {
     const query = `
       SELECT 
         bo.id as order_id,
-        bo.total_price,
         bo.created_at,
         bo.basket_id,
         b.basket_name,
         bd.item_id,
-        bd.quantity,
-        i.price_per_unit as price,
         i.name as item_name,
         i.image_url as item_image
       FROM booking_order bo
       JOIN baskets b ON bo.basket_id = b.basket_id
       JOIN basket_details bd ON b.basket_id = bd.basket_id
       JOIN items i ON bd.item_id = i.id
-      WHERE bo.id = ? AND bo.user_id = ? AND bo.booking_type = 'basket'
+      WHERE bo.id = ? AND bo.user_id = ? AND bo.booking_type = 'customized cart'
     `;
     const [rows] = await pool.query(query, [order_id, user_id]);
 
@@ -127,15 +103,12 @@ class OrderBasket {
     // Format the response
     return {
       order_id: rows[0].order_id,
-      total_price: rows[0].total_price,
       created_at: rows[0].created_at,
       basket_id: rows[0].basket_id,
       basket_name: rows[0].basket_name,
       items: rows.map(row => ({
         item_id: row.item_id,
         item_name: row.item_name,
-        quantity: row.quantity,
-        price: row.price,
         item_image: row.item_image
       }))
     };

@@ -1,4 +1,4 @@
-// controllers/bookingController.js
+// controllers/ordercartController.js
 const { pool } = require('../db_conn');
 
 exports.createBooking = async (req, res) => {
@@ -12,11 +12,11 @@ exports.createBooking = async (req, res) => {
     const { user_id, items, booking_type } = req.body;
     console.log('Request body:', req.body); // Add logging to debug
     
-    // Validate booking type
-    if (!booking_type || !['cart', 'order'].includes(booking_type)) {
+    // Validate booking type - UPDATED to include new cart types
+    if (!booking_type || !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be either "cart" or "order".'
+        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
       });
     }
     
@@ -53,8 +53,8 @@ exports.createBooking = async (req, res) => {
     
     // Insert each item into the booking_details table
     const itemInsertPromises = items.map(item => {
-      if (booking_type === 'cart') {
-        // For cart, quantity is NULL
+      if (booking_type === 'customized cart' || booking_type === 'fruit cart' || booking_type === 'vegetable cart') {
+        // For cart types, quantity is NULL
         return conn.query(
           'INSERT INTO booking_details (booking_id, item_id, quantity, price_per_unit) VALUES (?, ?, NULL, ?)',
           [booking_id, item.item_id, item.price_per_unit || 0]
@@ -108,6 +108,20 @@ exports.createBooking = async (req, res) => {
   }
 };
 
+// Create fruit cart - NEW ENDPOINT
+exports.createFruitCart = async (req, res) => {
+  // Automatically set the booking type to 'fruit cart'
+  req.body.booking_type = 'fruit cart';
+  return this.createBooking(req, res);
+};
+
+// Create vegetable cart - NEW ENDPOINT
+exports.createVegetableCart = async (req, res) => {
+  // Automatically set the booking type to 'vegetable cart'
+  req.body.booking_type = 'vegetable cart';
+  return this.createBooking(req, res);
+};
+
 // Get booking details by booking_id
 exports.getBookingById = async (req, res) => {
   let conn;
@@ -116,11 +130,11 @@ exports.getBookingById = async (req, res) => {
     const booking_id = req.params.id;
     const booking_type = req.query.type;
     
-    // Validate booking type if provided
-    if (booking_type && !['cart', 'order'].includes(booking_type)) {
+    // Validate booking type if provided - UPDATED to include new cart types
+    if (booking_type && !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be either "cart" or "order".'
+        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
       });
     }
     
@@ -180,11 +194,11 @@ exports.getBookingsByUserId = async (req, res) => {
     const user_id = req.params.userId;
     const booking_type = req.query.type; // Optional query param to filter by cart/order
     
-    // Validate booking type if provided
-    if (booking_type && !['cart', 'order'].includes(booking_type)) {
+    // Validate booking type if provided - UPDATED to include new cart types
+    if (booking_type && !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be either "cart" or "order".'
+        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
       });
     }
     

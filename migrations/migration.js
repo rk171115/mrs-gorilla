@@ -13,6 +13,7 @@ const WarehouseTable= require('../models/Vendor/Warehouse/warehousetable');
 const ItemPromotionTable= require('../models/Promotion/item_promotiontable');
 
 const BillingTable = require('../models/Vendor/Vendorbilling/BillingTable');
+const NotificationTable = require('../models/NotificationTable');
 
 
 
@@ -34,6 +35,7 @@ const tables = [
   { name: 'Warehouse ', tableClass:  WarehouseTable},
   { name: 'Promotion ', tableClass:  ItemPromotionTable},
   { name: 'Billing', tableClass: BillingTable },
+  { name: 'Notification', tableClass: NotificationTable },
 
   
   // Add any new tables here in the future
