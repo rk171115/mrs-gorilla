@@ -31,6 +31,7 @@ const billingRoutes = require('./routes/vendor/billingRoutes');
 const NotificationRoutes = require('./routes/vendor/NotificationRoutes');// notification being sent to all the vendor in the proximity
 const notificationRoutes = require('./routes/notificationroutes');// notification sent to specific vendor to user and user to vendor
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
+const warehouseFinderRoutes = require('./routes/vendor/warehouseFinderRoutes');
 
 
 
@@ -86,6 +87,7 @@ app.use('/api/v1/notification', NotificationRoutes);
 // Add the notification routes to your Express app
 app.use('/api/v1/notifisent', notificationRoutes);
 app.use('/api/qr-codes', qrCodeRoutes);
+app.use('/api/v1/warehouse-finder', warehouseFinderRoutes);
 
 
 
