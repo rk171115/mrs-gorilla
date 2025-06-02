@@ -187,6 +187,7 @@ exports.getBookingById = async (req, res) => {
 };
 
 // Get all bookings by user_id with optional type filter
+// Get all bookings by user_id with optional type filter
 exports.getBookingsByUserId = async (req, res) => {
   let conn;
   try {
@@ -220,19 +221,29 @@ exports.getBookingsByUserId = async (req, res) => {
     if (ordersResult.length === 0) {
       return res.status(404).json({
         success: false,
-        message: booking_type 
-          ? `No ${booking_type}s found for this user` 
+        message: booking_type
+          ? `No ${booking_type}s found for this user`
           : 'No bookings found for this user'
       });
     }
     
-    // Get details for each booking
+    // Get details for each booking with item images
     const bookingsWithDetails = await Promise.all(
       ordersResult.map(async (booking) => {
-        const [detailsResult] = await conn.query(
-          'SELECT * FROM booking_details WHERE booking_id = ?',
-          [booking.id]
-        );
+        // Updated query to join booking_details with items table to get image_url
+const [detailsResult] = await conn.query(`
+          SELECT 
+            bd.*,
+            CASE 
+              WHEN i.image_url IS NOT NULL 
+              THEN CONCAT('http://13.126.169.224/', i.image_url)
+              ELSE NULL
+            END as image_url
+          FROM booking_details bd
+          LEFT JOIN items i ON bd.item_id = i.id
+          WHERE bd.booking_id = ?
+        `, [booking.id]);
+        
         
         return {
           booking,
@@ -247,7 +258,6 @@ exports.getBookingsByUserId = async (req, res) => {
       count: ordersResult.length,
       data: bookingsWithDetails
     });
-    
   } catch (error) {
     console.error('Error fetching user bookings:', error);
     return res.status(500).json({

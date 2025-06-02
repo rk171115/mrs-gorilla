@@ -66,7 +66,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ Define Routes After Middleware
-app.use('/auth', phoneAuthRoutes);
+app.use('/api/auth', phoneAuthRoutes);
 app.use('/api/v1/veggies', veggieRoutes);
 app.use('/api/v1/bookings', bookingsRoutes);
 app.use('/api/v1/items', apiRoutes);
