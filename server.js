@@ -34,6 +34,7 @@ const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const warehouseFinderRoutes = require('./routes/vendor/warehouseFinderRoutes');
 const smartOrderRoutes = require('./routes/smartOrderRoutes');
 const orderStatusRoutes = require('./routes/orderStatusRoutes');
+const versionRoutes = require('./routes/versionroutes');
 
 
 
@@ -92,6 +93,7 @@ app.use('/api/qr-codes', qrCodeRoutes);
 app.use('/api/v1/warehouse-finder', warehouseFinderRoutes);
 app.use('/api/v1/smartOrders', smartOrderRoutes);
 app.use('/api/v1/orderStatus', orderStatusRoutes);
+app.use('/api/v1/version', versionRoutes);
 
 
 
