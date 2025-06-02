@@ -9,14 +9,14 @@ exports.createBooking = async (req, res) => {
     await conn.beginTransaction();
     
     // Extract data from request body
-    const { user_id, items, booking_type } = req.body;
+    const { user_id, items, booking_type, address } = req.body;
     console.log('Request body:', req.body); // Add logging to debug
     
     // Validate booking type - UPDATED to include new cart types
-    if (!booking_type || !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
+    if (!booking_type || !['Z customized cart', 'order', 'Z fruit cart', 'Z vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
+        message: 'Invalid booking type. Must be "Z customized cart", "order", "Z fruit cart", or "Z vegetable cart".'
       });
     }
     
@@ -25,6 +25,14 @@ exports.createBooking = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid request. User ID and at least one item is required.'
+      });
+    }
+    
+    // Validate address (required for all booking types)
+    if (!address || address.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required.'
       });
     }
     
@@ -43,17 +51,17 @@ exports.createBooking = async (req, res) => {
       }
     }
     
-    // Insert into booking_order table
+    // Insert into booking_order table - UPDATED to include address
     const [orderResult] = await conn.query(
-      'INSERT INTO booking_order (user_id, booking_type, total_price) VALUES (?, ?, ?)',
-      [user_id, booking_type, total_price]
+      'INSERT INTO booking_order (user_id, booking_type, total_price, address) VALUES (?, ?, ?, ?)',
+      [user_id, booking_type, total_price, address.trim()]
     );
     
     const booking_id = orderResult.insertId;
     
     // Insert each item into the booking_details table
     const itemInsertPromises = items.map(item => {
-      if (booking_type === 'customized cart' || booking_type === 'fruit cart' || booking_type === 'vegetable cart') {
+      if (booking_type === 'Z customized cart' || booking_type === 'Z fruit cart' || booking_type === 'Z vegetable cart') {
         // For cart types, quantity is NULL
         return conn.query(
           'INSERT INTO booking_details (booking_id, item_id, quantity, price_per_unit) VALUES (?, ?, NULL, ?)',
@@ -78,6 +86,7 @@ exports.createBooking = async (req, res) => {
       booking_id,
       user_id,
       booking_type,
+      address,
       items_count: items.length
     };
     
@@ -108,18 +117,205 @@ exports.createBooking = async (req, res) => {
   }
 };
 
-// Create fruit cart - NEW ENDPOINT
-exports.createFruitCart = async (req, res) => {
-  // Automatically set the booking type to 'fruit cart'
-  req.body.booking_type = 'fruit cart';
-  return this.createBooking(req, res);
+// Combined endpoint for both fruit and vegetable carts
+exports.createFruitVegetableCart = async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    // Extract data from request body
+    const { user_id, cart_type, address } = req.body;
+    
+    // Validate required fields
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required.'
+      });
+    }
+    
+    if (!cart_type || !['Z fruit cart', 'Z vegetable cart'].includes(cart_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid cart type. Must be "Z fruit cart" or "Z vegetable cart".'
+      });
+    }
+    
+    if (!address || address.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required.'
+      });
+    }
+    
+    // Determine the item type to fetch based on cart_type
+    const itemType = cart_type === 'Z fruit cart' ? 'fruit' : 'vegetable';
+    
+    // Fetch items from the database based on type
+    const [itemsResult] = await conn.query(
+      'SELECT id as item_id, price_per_unit FROM items WHERE type = ?',
+      [itemType]
+    );
+    
+    if (itemsResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${itemType}s found in the system.`
+      });
+    }
+    
+    // Format items for the createBooking function
+    const items = itemsResult.map(item => ({
+      item_id: item.item_id,
+      price_per_unit: item.price_per_unit || 0
+    }));
+    
+    // Set the request body for createBooking
+    req.body.booking_type = cart_type;
+    req.body.items = items;
+    // address is already in req.body
+    
+    // Call the main createBooking function
+    return this.createBooking(req, res);
+    
+  } catch (error) {
+    console.error(`Error creating ${req.body.cart_type || 'cart'}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to create ${req.body.cart_type || 'cart'}`,
+      error: error.message
+    });
+  } finally {
+    if (conn) conn.release();
+  }
 };
 
-// Create vegetable cart - NEW ENDPOINT
+// Create fruit cart - UPDATED to auto-fetch fruits (keeping for backward compatibility)
+exports.createFruitCart = async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    // Extract user_id and address from request body
+    const { user_id, address } = req.body;
+    
+    // Validate user_id
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required.'
+      });
+    }
+    
+    // Validate address
+    if (!address || address.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required.'
+      });
+    }
+    
+    // Fetch all fruits from items table
+    const [fruitsResult] = await conn.query(
+      'SELECT id as item_id, price_per_unit FROM items WHERE type = ?',
+      ['fruit']
+    );
+    
+    if (fruitsResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No fruits found in the system.'
+      });
+    }
+    
+    // Format items for the createBooking function
+    const items = fruitsResult.map(fruit => ({
+      item_id: fruit.item_id,
+      price_per_unit: fruit.price_per_unit || 0
+    }));
+    
+    // Set the request body for createBooking
+    req.body.booking_type = 'Z fruit cart';
+    req.body.items = items;
+    // address is already in req.body
+    
+    // Call the main createBooking function
+    return this.createBooking(req, res);
+    
+  } catch (error) {
+    console.error('Error creating fruit cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create fruit cart',
+      error: error.message
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
+// Create vegetable cart - UPDATED to auto-fetch vegetables (keeping for backward compatibility)
 exports.createVegetableCart = async (req, res) => {
-  // Automatically set the booking type to 'vegetable cart'
-  req.body.booking_type = 'vegetable cart';
-  return this.createBooking(req, res);
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    
+    // Extract user_id and address from request body
+    const { user_id, address } = req.body;
+    
+    // Validate user_id
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required.'
+      });
+    }
+    
+    // Validate address
+    if (!address || address.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required.'
+      });
+    }
+    
+    // Fetch all vegetables from items table
+    const [vegetablesResult] = await conn.query(
+      'SELECT id as item_id, price_per_unit FROM items WHERE type = ?',
+      ['vegetable']
+    );
+    
+    if (vegetablesResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No vegetables found in the system.'
+      });
+    }
+    
+    // Format items for the createBooking function
+    const items = vegetablesResult.map(vegetable => ({
+      item_id: vegetable.item_id,
+      price_per_unit: vegetable.price_per_unit || 0
+    }));
+    
+    // Set the request body for createBooking
+    req.body.booking_type = 'Z vegetable cart';
+    req.body.items = items;
+    // address is already in req.body
+    
+    // Call the main createBooking function
+    return this.createBooking(req, res);
+    
+  } catch (error) {
+    console.error('Error creating vegetable cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create vegetable cart',
+      error: error.message
+    });
+  } finally {
+    if (conn) conn.release();
+  }
 };
 
 // Get booking details by booking_id
@@ -131,10 +327,10 @@ exports.getBookingById = async (req, res) => {
     const booking_type = req.query.type;
     
     // Validate booking type if provided - UPDATED to include new cart types
-    if (booking_type && !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
+    if (booking_type && !['Z customized cart', 'order', 'Z fruit cart', 'Z vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
+        message: 'Invalid booking type. Must be "Z customized cart", "order", "Z fruit cart", or "Z vegetable cart".'
       });
     }
     
@@ -196,10 +392,10 @@ exports.getBookingsByUserId = async (req, res) => {
     const booking_type = req.query.type; // Optional query param to filter by cart/order
     
     // Validate booking type if provided - UPDATED to include new cart types
-    if (booking_type && !['customized cart', 'order', 'fruit cart', 'vegetable cart'].includes(booking_type)) {
+    if (booking_type && !['Z customized cart', 'order', 'Z fruit cart', 'Z vegetable cart'].includes(booking_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid booking type. Must be "customized cart", "order", "fruit cart", or "vegetable cart".'
+        message: 'Invalid booking type. Must be "Z customized cart", "order", "Z fruit cart", or "Z vegetable cart".'
       });
     }
     

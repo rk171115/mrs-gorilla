@@ -32,6 +32,9 @@ const NotificationRoutes = require('./routes/vendor/NotificationRoutes');// noti
 const notificationRoutes = require('./routes/notificationroutes');// notification sent to specific vendor to user and user to vendor
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const warehouseFinderRoutes = require('./routes/vendor/warehouseFinderRoutes');
+const smartOrderRoutes = require('./routes/smartOrderRoutes');
+const orderStatusRoutes = require('./routes/orderStatusRoutes');
+const versionRoutes = require('./routes/versionroutes');
 
 
 
@@ -88,6 +91,9 @@ app.use('/api/v1/notification', NotificationRoutes);
 app.use('/api/v1/notifisent', notificationRoutes);
 app.use('/api/qr-codes', qrCodeRoutes);
 app.use('/api/v1/warehouse-finder', warehouseFinderRoutes);
+app.use('/api/v1/smartOrders', smartOrderRoutes);
+app.use('/api/v1/orderStatus', orderStatusRoutes);
+app.use('/api/v1/version', versionRoutes);
 
 
 
