@@ -4,9 +4,9 @@ const veggiecontroller = require('../controllers/veggiecontroller'); // Adjust p
 const auth = require('../middleware/auth');
 
 // Route to get items by category (POST method)
-router.post('/category',auth, veggiecontroller.getItemsByCategory);
+router.post('/category', veggiecontroller.getItemsByCategory);
 
 // Route to get filtered items by category (POST method)
-router.post('/category/filtered',auth, veggiecontroller.getFilteredItems);
+router.post('/category/filtered', veggiecontroller.getFilteredItems);
 
 module.exports = router;

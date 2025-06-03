@@ -7,11 +7,11 @@ const auth = require('../middleware/auth');
 //const { protect } = require('../middleware/auth'); // Optional middleware
 
 // Address management routes
-router.post('/',auth, AddressController.createAddress);
-router.get('/',auth, AddressController.getAllAddresses);
-router.get('/:id',auth, AddressController.getAddressById);
-router.put('/:id',auth, AddressController.updateAddress);
-router.delete('/:id',auth, AddressController.deleteAddress);
-router.patch('/:id/set-default',auth, AddressController.setDefaultAddress);
+router.post('/', AddressController.createAddress);
+router.get('/', AddressController.getAllAddresses);
+router.get('/:id', AddressController.getAddressById);
+router.put('/:id', AddressController.updateAddress);
+router.delete('/:id', AddressController.deleteAddress);
+router.patch('/:id/set-default', AddressController.setDefaultAddress);
 
 module.exports = router;

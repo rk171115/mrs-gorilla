@@ -60,9 +60,9 @@ class PhoneAuthController {
         return res.status(400).json({ success: false, error: "OTP expired" });
       }
 
-      // Get FCM token from stored data
-      const { fcm_token } = storedOtpData;
 
+      // Get FCM token from stored data
+  const { fcm_token } = storedOtpData;
       // Delete OTP after successful verification
       otpStore.delete(phone_number);
 
@@ -105,6 +105,7 @@ class PhoneAuthController {
           success: true, 
           message: "User registered successfully!", 
           userId: userId,
+          phone_number: phone_number,
           token
         });
       } else {
@@ -113,6 +114,7 @@ class PhoneAuthController {
           message: "Login successful!", 
           user: existingUsers[0],
           userId: userId,
+          phone_number: phone_number,
           token
         });
       }

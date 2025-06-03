@@ -4,7 +4,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Firebase Service Account
-const SERVICE_ACCOUNT = require('../zdeliver-acc55-firebase-adminsk-fbsvc-f439bed9a3.json');
+//const SERVICE_ACCOUNT = require('../zdeliver-acc55-firebase-adminsk-fbsvc-f439bed9a3.json');
 
 // MySQL Connection Pool
 const pool = mysql.createPool({

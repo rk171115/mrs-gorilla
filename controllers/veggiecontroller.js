@@ -3,7 +3,7 @@ const { pool } = require('../db_conn'); // Adjust the path to your database conn
 class CategoryController {
   // Helper method to construct full image URL
   static getFullImageUrl(relativePath) {
-    const BASE_URL = 'http://localhost:8000';
+    const BASE_URL = 'http://13.126.169.224';
     
     // If no path or path is undefined, return null
     if (!relativePath) return null;
