@@ -38,6 +38,39 @@ class WarehouseFinderModel {
   }
 
   /**
+   * Get a specific warehouse by ID
+   * @param {number} warehouseId - The ID of the warehouse
+   * @returns {Promise<Object|null>} - Warehouse information or null if not found
+   */
+  static async getWarehouseById(warehouseId) {
+    try {
+      const query = `
+        SELECT 
+          id,
+          warehouse_Name,
+          latitude,
+          longitude,
+          Address,
+          min_lat,
+          max_lat,
+          min_lng,
+          max_lng,
+          created_at,
+          updated_at
+        FROM warehouse 
+        WHERE id = ?
+        LIMIT 1
+      `;
+      
+      const [warehouses] = await pool.query(query, [warehouseId]);
+      return warehouses.length > 0 ? warehouses[0] : null;
+    } catch (error) {
+      console.error('Error finding warehouse by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Find vendors associated with a warehouse and matching the cart type
    * @param {number} warehouseId - The ID of the warehouse
    * @param {string} cartType - The type of cart (vegetable, fruit, fruit cart, customized card)

@@ -57,47 +57,54 @@ class WarehouseFinderController {
       // Find warehouse based on coordinates
       const warehouse = await WarehouseFinderModel.findWarehouseByLocation(lat, lng);
       
-      if (!warehouse) {
-        return res.status(404).json({
-          success: false,
-          error: "No warehouse serves the provided location",
-          location: { 
-            latitude: lat, 
-            longitude: lng 
-          },
-          message: "Try a different location or contact support"
-        });
-      }
-      
-      // If cart_type is provided, find vendors matching that type
-      // If cart_type is not provided, get vendor stats for message
       let message;
+      let warehouseToReturn;
       
-      if (cart_type) {
-        // Find vendors associated with the warehouse and matching cart type
-        const vendors = await WarehouseFinderModel.findVendorsByWarehouseAndCartType(
-          warehouse.id, 
-          cart_type.toLowerCase()
-        );
+      if (!warehouse) {
+        // Get default warehouse (ID 1) when no warehouse serves the location
+        const defaultWarehouse = await WarehouseFinderModel.getWarehouseById(1);
         
-        message = `Found warehouse serving your location with ${vendors.length} ${cart_type} vendors available`;
+        if (!defaultWarehouse) {
+          return res.status(500).json({
+            success: false,
+            error: "Default warehouse not found",
+            message: "Please contact support"
+          });
+        }
+        
+        warehouseToReturn = defaultWarehouse;
+        message = "Sorry right now we are not available in your city";
       } else {
-        // Get vendor count by cart type for this warehouse
-        const vendorStats = await WarehouseFinderModel.getVendorStatsByWarehouse(warehouse.id);
+        warehouseToReturn = warehouse;
         
-        message = `Found warehouse serving your location with ${vendorStats.vegetable_vendors} vegetable vendors, ${vendorStats.fruit_vendors} fruit vendors, and ${vendorStats.customized_cart_vendors} customized cart vendors available`;
+        // If cart_type is provided, find vendors matching that type
+        // If cart_type is not provided, get vendor stats for message
+        if (cart_type) {
+          // Find vendors associated with the warehouse and matching cart type
+          const vendors = await WarehouseFinderModel.findVendorsByWarehouseAndCartType(
+            warehouse.id, 
+            cart_type.toLowerCase()
+          );
+          
+          message = `Found warehouse serving your location with ${vendors.length} ${cart_type} vendors available`;
+        } else {
+          // Get vendor count by cart type for this warehouse
+          const vendorStats = await WarehouseFinderModel.getVendorStatsByWarehouse(warehouse.id);
+          
+          message = `Found warehouse serving your location with ${vendorStats.vegetable_vendors} vegetable vendors, ${vendorStats.fruit_vendors} fruit vendors, and ${vendorStats.customized_cart_vendors} customized cart vendors available`;
+        }
       }
       
       return res.status(200).json({
         success: true,
         message: message,
         warehouse: {
-          id: warehouse.id,
-          name: warehouse.warehouse_Name,
-          address: warehouse.Address,
+          id: warehouseToReturn.id,
+          name: warehouseToReturn.warehouse_Name,
+          address: warehouseToReturn.Address,
           coordinates: {
-            latitude: warehouse.latitude,
-            longitude: warehouse.longitude
+            latitude: warehouseToReturn.latitude,
+            longitude: warehouseToReturn.longitude
           }
         }
       });
