@@ -112,6 +112,33 @@ class SmartOrderController {
       throw error;
     }
   }
+
+  // Helper: Check if booking is already accepted
+  static async isBookingAlreadyAccepted(booking_id) {
+    try {
+      const query = `
+        SELECT id, vendor_id, status 
+        FROM order_request 
+        WHERE booking_id = ? AND status = 'accepted'
+        LIMIT 1
+      `;
+      
+      const [rows] = await pool.query(query, [booking_id]);
+      
+      if (rows.length > 0) {
+        return { 
+          isAccepted: true, 
+          acceptedBy: rows[0].vendor_id,
+          orderId: rows[0].id 
+        };
+      }
+      
+      return { isAccepted: false };
+    } catch (error) {
+      console.error('Error checking booking acceptance status:', error);
+      throw error;
+    }
+  }
   
   // ========== MAIN CONTROLLER METHODS ==========
   
@@ -241,7 +268,41 @@ class SmartOrderController {
           error: 'Status must be pending, accepted, or rejected' 
         });
       }
+
+      // Get order request details first
+      const orderDetails = await SmartOrderRequest.getOrderRequestDetails(id);
+      if (!orderDetails.success) {
+        return res.status(404).json({ 
+          success: false, 
+          error: orderDetails.error 
+        });
+      }
+
+      const { booking_id, vendor_id, user_id } = orderDetails.request;
+
+      // Check if trying to accept an order
+      if (status === 'accepted') {
+        // Check if this booking is already accepted by another vendor
+        const acceptanceCheck = await SmartOrderController.isBookingAlreadyAccepted(booking_id);
+        
+        if (acceptanceCheck.isAccepted) {
+          // Get vendor details for the response
+          const acceptedVendorDetails = await SmartOrderController.getVendorDetails(acceptanceCheck.acceptedBy);
+          
+          return res.status(409).json({ 
+            success: false, 
+            error: 'Order already accepted by another vendor',
+            message: `This order has already been accepted by ${acceptedVendorDetails.name}`,
+            details: {
+              accepted_by_vendor_id: acceptanceCheck.acceptedBy,
+              accepted_by_vendor_name: acceptedVendorDetails.name,
+              accepted_order_id: acceptanceCheck.orderId
+            }
+          });
+        }
+      }
       
+      // Update the order request status
       const result = await SmartOrderRequest.updateOrderRequestStatus(id, status, reason);
       
       if (!result.success) {
@@ -251,56 +312,38 @@ class SmartOrderController {
         });
       }
       
-      // Send notification to user about status change using internal method
+      // Send notifications and handle post-update actions
       try {
-        const orderDetails = await SmartOrderRequest.getOrderRequestDetails(id);
-        
-        if (orderDetails.success) {
-            const { booking_id, vendor_id, user_id } = orderDetails.request;
-            
-            if (status === 'accepted') {
-              // Create a new "accepted" entry in order_request table
-              const acceptedOrderResult = await SmartOrderRequest.createOrderRequest(
-                vendor_id, 
-                booking_id, 
-                user_id, 
-                'accepted', 
-                `Order accepted by vendor ${vendor_id}`
-              );
-              
-              if (acceptedOrderResult.success) {
-                console.log(`New accepted order entry created with ID: ${acceptedOrderResult.id}`);
-                
-                // Cancel other pending requests (only if multiple exist)
-                const cancelResult = await SmartOrderRequest.cancelOtherPendingRequests(booking_id, id);
-                console.log(`Cancellation result: ${cancelResult.canceled_count} requests cancelled`);
-                
-                await SmartOrderController.sendAcceptanceNotificationToUser({
-                  user_id,
-                  booking_id,
-                  vendor_id
-                });
-                console.log(`Order ${booking_id} accepted and user notified`);
-              } else {
-                console.error('Failed to create accepted order entry:', acceptedOrderResult.error);
-              }
-            } else if (status === 'rejected') {
-              await SmartOrderController.sendRejectionNotificationToUser({
-                user_id,
-                booking_id,
-                vendor_id,
-                reason
-              });
-              console.log(`Order ${booking_id} rejected, user notified`);
-            }
-          }
+        if (status === 'accepted') {
+          // Cancel other pending requests for this booking
+          const cancelResult = await SmartOrderRequest.cancelOtherPendingRequests(booking_id, id);
+          console.log(`Cancellation result: ${cancelResult.canceled_count} requests cancelled`);
+          
+          // Send acceptance notification to user
+          await SmartOrderController.sendAcceptanceNotificationToUser({
+            user_id,
+            booking_id,
+            vendor_id
+          });
+          console.log(`Order ${booking_id} accepted and user notified`);
+          
+        } else if (status === 'rejected') {
+          // Send rejection notification to user
+          await SmartOrderController.sendRejectionNotificationToUser({
+            user_id,
+            booking_id,
+            vendor_id,
+            reason
+          });
+          console.log(`Order ${booking_id} rejected, user notified`);
+        }
       } catch (error) {
         console.error('Error in post-status-update actions:', error);
       }
       
       return res.status(200).json({ 
         success: true, 
-        message: `Order request ${status} successfully${status === 'accepted' ? ' and other vendors notified' : ''}`
+        message: `Order request ${status} successfully${status === 'accepted' ? ' and other pending requests cancelled' : ''}`
       });
     } catch (error) {
       console.error('Error updating order request status:', error);
