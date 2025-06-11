@@ -6,13 +6,23 @@ const otpStore = new Map();
 
 class PhoneAuthController {
   // Generate OTP and store in memory map
-  static async sendOTP(req, res) {
+ static async sendOTP(req, res) {
     try {
       const { phone_number, fcm_token } = req.body;
       if (!phone_number) return res.status(400).json({ success: false, error: "Phone number is required" });
 
-      // Generate a 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000);
+      let otp;
+      
+      // Check if it's the demo phone number
+      if (phone_number === '1234567890') {
+        otp = 123456; // Hardcoded OTP for demo
+        otpStore.set(phone_number, { otp, expiresAt: Date.now() + 5 * 60 * 1000, fcm_token });
+        console.log(`Demo OTP sent for ${phone_number}: ${otp}`);
+        return res.status(200).json({ success: true, message: "Demo OTP sent successfully!" });
+      }
+
+      // Generate a 6-digit OTP for regular users
+      otp = Math.floor(100000 + Math.random() * 900000);
       otpStore.set(phone_number, { otp, expiresAt: Date.now() + 5 * 60 * 1000, fcm_token });
 
       // Send OTP via Fast2SMS API
@@ -30,7 +40,7 @@ class PhoneAuthController {
           }
         }
       );
-      
+
       console.log(response.data);
       res.status(200).json({ success: true, message: "OTP sent successfully!" });
     } catch (error) {
@@ -40,12 +50,13 @@ class PhoneAuthController {
   }
 
   // Verify OTP and generate JWT token
+// Verify OTP and generate JWT token
   static async verifyOTP(req, res) {
     try {
       const { phone_number, otp } = req.body;
-      if (!phone_number || !otp) return res.status(400).json({ 
-        success: false, 
-        error: "Phone number and OTP are required" 
+      if (!phone_number || !otp) return res.status(400).json({
+        success: false,
+        error: "Phone number and OTP are required"
       });
 
       // Retrieve stored OTP from memory
@@ -60,9 +71,8 @@ class PhoneAuthController {
         return res.status(400).json({ success: false, error: "OTP expired" });
       }
 
-
       // Get FCM token from stored data
-  const { fcm_token } = storedOtpData;
+      const { fcm_token } = storedOtpData;
       // Delete OTP after successful verification
       otpStore.delete(phone_number);
 
@@ -83,7 +93,6 @@ class PhoneAuthController {
           [fcm_token, phone_number]
         );
       } else {
-        // User Does Not Exist → Register them with FCM token
         const [newUser] = await pool.query(
           `INSERT INTO users (phone_number, fcm_token, is_verified, created_at, updated_at) VALUES (?, ?, TRUE, NOW(), NOW())`,
           [phone_number, fcm_token]
@@ -101,18 +110,17 @@ class PhoneAuthController {
 
       // Return appropriate response based on whether user is new or existing
       if (isNewUser) {
-        return res.status(201).json({ 
-          success: true, 
-          message: "User registered successfully!", 
+        return res.status(201).json({
+          success: true,
+          message: "User registered successfully!",
           userId: userId,
           phone_number: phone_number,
           token
         });
       } else {
-        return res.status(200).json({ 
-          success: true, 
-          message: "Login successful!", 
-          user: existingUsers[0],
+        return res.status(200).json({
+          success: true,
+          message: "User logged in successfully!",
           userId: userId,
           phone_number: phone_number,
           token
