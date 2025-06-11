@@ -252,15 +252,16 @@ class SmartOrderController {
 
   static async updateOrderRequestStatus(req, res) {
     try {
-      const { id } = req.params;
-      const { status, reason } = req.body;
-      
-      if (!id || !status) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Request ID and Status are required' 
-        });
-      }
+      // NEW CODE
+const { vendorId } = req.params;
+const { status, reason, booking_id } = req.body; // Add booking_id to body
+
+if (!vendorId || !status || !booking_id) {
+  return res.status(400).json({ 
+    success: false, 
+    error: 'Vendor ID, Booking ID, and Status are required' 
+  });
+}
       
       if (!['pending', 'accepted', 'rejected'].includes(status)) {
         return res.status(400).json({ 
@@ -270,15 +271,18 @@ class SmartOrderController {
       }
 
       // Get order request details first
-      const orderDetails = await SmartOrderRequest.getOrderRequestDetails(id);
-      if (!orderDetails.success) {
-        return res.status(404).json({ 
-          success: false, 
-          error: orderDetails.error 
-        });
-      }
+      // NEW CODE
+// Get order request details by vendor and booking
+const orderDetails = await SmartOrderRequest.getOrderRequestByVendorAndBooking(vendorId, booking_id);
+if (!orderDetails.success) {
+  return res.status(404).json({ 
+    success: false, 
+    error: orderDetails.error 
+  });
+}
 
-      const { booking_id, vendor_id, user_id } = orderDetails.request;
+const { id, user_id } = orderDetails.request;
+// vendor_id is already available as vendorId from params
 
       // Check if trying to accept an order
       if (status === 'accepted') {

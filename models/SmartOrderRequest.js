@@ -320,6 +320,32 @@ class SmartOrderRequest {
     }
   }
 
+  // Add this to your SmartOrderRequest model
+static async getOrderRequestByVendorAndBooking(vendor_id, booking_id) {
+  try {
+    const query = `
+      SELECT ord.*, u.full_name as user_name, bo.address, bo.booking_type
+FROM order_request ord
+LEFT JOIN users u ON ord.user_id = u.id
+LEFT JOIN booking_order bo ON ord.booking_id = bo.id
+WHERE ord.vendor_id = '2' AND ord.booking_id = 1 
+ORDER BY ord.created_at DESC
+LIMIT 1
+    `;
+    
+    const [rows] = await pool.query(query, [vendor_id, booking_id]);
+    
+    if (rows.length === 0) {
+      return { success: false, error: 'Order request not found for this vendor and booking' };
+    }
+    
+    return { success: true, request: rows[0] };
+  } catch (error) {
+    console.error('Error getting order request by vendor and booking:', error);
+    return { success: false, error: 'Database error' };
+  }
+}
+
   // Get all pending order requests (admin view)
   static async getPendingOrderRequests() {
     try {

@@ -11,7 +11,7 @@ router.post('/smart-order', SmartOrderController.createSmartOrderRequest);
 
 // Update order request status (vendor accepts/rejects)
 // Expects: { status, reason? }
-router.put('/order-request/:id/status', SmartOrderController.updateOrderRequestStatus);
+router.put('/vendor/:vendorId/order-request/status', SmartOrderController.updateOrderRequestStatus);
 
 // Get all order requests for a specific vendor
 router.get('/vendor/:vendorId/orders', SmartOrderController.getVendorOrderRequests);
