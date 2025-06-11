@@ -46,11 +46,13 @@ class VendorAuthModel {
   // Update last login time and FCM token
   static async updateLastLoginAndFCMToken(vendor_details_id, fcm_token) {
     try {
-      // Update FCM token in vendor_details
-      await pool.query(
-        'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
-        [fcm_token, vendor_details_id]
-      );
+      // Update FCM token in vendor_details (handle null values properly)
+      if (fcm_token) {
+        await pool.query(
+          'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
+          [fcm_token, vendor_details_id]
+        );
+      }
       
       // Update last login in vendor_auth
       await pool.query(
@@ -67,11 +69,13 @@ class VendorAuthModel {
   // Update last login time and FCM token by ID
   static async updateLastLoginAndFCMTokenById(vendor_details_id, fcm_token) {
     try {
-      // Update FCM token in vendor_details
-      await pool.query(
-        'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
-        [fcm_token, vendor_details_id]
-      );
+      // Update FCM token in vendor_details (handle null values properly)
+      if (fcm_token) {
+        await pool.query(
+          'UPDATE vendor_details SET fcm_token = ? WHERE id = ?',
+          [fcm_token, vendor_details_id]
+        );
+      }
       
       // Update last login in vendor_auth
       await pool.query(

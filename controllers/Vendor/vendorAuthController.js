@@ -62,7 +62,7 @@ class VendorAuthController {
       // Store OTP in memory with 5 minutes expiry and FCM token
       otpStore.set(phone_no, { 
         otp, 
-        fcm_token,
+        fcm_token: fcm_token || null,
         expiresAt: Date.now() + 5 * 60 * 1000 
       });
       
@@ -98,10 +98,10 @@ class VendorAuthController {
     }
   }
 
-  // Verify OTP for login (modified to update FCM token)
+  // Verify OTP for login (modified to accept FCM token in request body)
   static async verifyLoginOTP(req, res) {
     try {
-      const { phone_no, otp } = req.body;
+      const { phone_no, otp, fcm_token } = req.body;
       
       if (!phone_no || !otp) {
         return res.status(400).json({ error: "Phone number and OTP are required" });
@@ -120,8 +120,8 @@ class VendorAuthController {
         return res.status(400).json({ error: "OTP expired" });
       }
       
-      // Get FCM token from stored data
-      const { fcm_token } = storedOtpData;
+      // Use FCM token from request body, fallback to stored FCM token, or null
+      const finalFcmToken = fcm_token || storedOtpData.fcm_token || null;
       
       // Delete OTP after successful verification
       otpStore.delete(phone_no);
@@ -134,7 +134,7 @@ class VendorAuthController {
       }
       
       // Update last login time and FCM token
-      await VendorAuthModel.updateLastLoginAndFCMToken(vendorAuth.vendor_details_id, fcm_token);
+      await VendorAuthModel.updateLastLoginAndFCMToken(vendorAuth.vendor_details_id, finalFcmToken);
       
       // Get vendor details
       const vendorDetails = await VendorAuthModel.getVendorDetailsById(vendorAuth.vendor_details_id);
@@ -174,7 +174,7 @@ class VendorAuthController {
       // Add FCM token to vendor data
       const vendorDataWithFCM = {
         ...vendorData,
-        fcm_token
+        fcm_token: fcm_token || null
       };
       
       // Register new vendor
@@ -209,7 +209,7 @@ class VendorAuthController {
       }
       
       // Update last login time and FCM token
-      await VendorAuthModel.updateLastLoginAndFCMTokenById(vendor.vendor_details_id, fcm_token);
+      await VendorAuthModel.updateLastLoginAndFCMTokenById(vendor.vendor_details_id, fcm_token || null);
       
       res.status(200).json({
         message: "Login successful!",
