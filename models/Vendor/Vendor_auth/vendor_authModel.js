@@ -16,18 +16,39 @@ class VendorAuthModel {
   }
 
   // Get vendor details by vendor_auth id
-  static async getVendorDetailsById(vendor_details_id) {
-    try {
-      const [rows] = await pool.query(
-        'SELECT * FROM vendor_details WHERE id = ?',
-        [vendor_details_id]
-      );
-      return rows.length > 0 ? rows[0] : null;
-    } catch (error) {
-      console.error('Error getting vendor details:', error);
-      throw error;
-    }
+//  static async getVendorDetailsById(vendor_details_id) {
+  //  try {
+    //  const [rows] = await pool.query(
+    //    'SELECT * FROM vendor_details WHERE id = ?',
+    //    [vendor_details_id]
+    //  );
+    //  return rows.length > 0 ? rows[0] : null;
+   // } catch (error) {
+   //   console.error('Error getting vendor details:', error);
+   //   throw error;
+   // }
+ // }
+
+
+static async getVendorDetailsById(vendor_details_id) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT 
+        vd.*, 
+        w.latitude, 
+        w.longitude 
+      FROM vendor_details vd
+      LEFT JOIN warehouse w ON vd.warehouse_id = w.id
+      WHERE vd.id = ?`,
+      [vendor_details_id]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error('Error getting vendor details:', error);
+    throw error;
   }
+}
+
 
   // Update last login time
   static async updateLastLogin(id) {

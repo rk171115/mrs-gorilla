@@ -4,12 +4,12 @@ class VersionController {
     // Configuration
     static latestVersions = {
         ios: '1.0.0',
-        android: '1.0.0'
+        android: '1.3.0'
     };
 
     static storeUrls = {
-        ios: 'https://apps.apple.com/in/app/primestage-artist-booking-app/id6736954597',
-        android: 'https://play.google.com/store/apps/details?id=your.package.name'
+        ios: 'https://play.google.com/store/apps/details?id=your.package.name',
+        android: 'https://play.google.com/store/apps/details?id=com.zdeliver.mrsgorilla&pcampaignid=web_share'
     };
 
     /**

@@ -3,7 +3,7 @@ const CartModel = require('../../models/Vendor/CartModel');
 
 // Helper method to construct full image URL
 const getFullImageUrl = (relativePath) => {
-  const BASE_URL = 'http://localhost:8000';
+  const BASE_URL = 'http://13.126.169.224';
   // If no path or path is undefined, return null
   if (!relativePath) return null;
   // Ensure relativePath is a string and remove leading slash if present

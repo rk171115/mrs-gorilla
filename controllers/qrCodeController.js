@@ -4,8 +4,8 @@ const axios = require('axios');
 const createQRCode = async (req, res) => {
   try {
     // Hardcode the credentials for test
-    const keyId = 'rzp_test_HOznD0kcU57Llw';
-    const keySecret = 'ZjEJR47tBc7PVBiC4rVMPyl';  // Make sure this matches exactly
+    const keyId = 'rzp_live_3E5HkheNxutxky';
+    const keySecret = 'qpins0d1lLghfAc5m0TOs1NS';  // Make sure this matches exactly
 
     // Simplify the request payload
     const requestData = {
@@ -44,7 +44,7 @@ const createQRCode = async (req, res) => {
     
     return res.status(error.response?.status || 500).json({
       success: false,
-      error: error.response?.data || 'Failed to create QR code'
+      error: error || 'Failed to create QR code'
     });
   }
 };

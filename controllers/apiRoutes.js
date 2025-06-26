@@ -18,7 +18,7 @@ class ApiController {
   // Method to get all items
   static async getAllItems(req, res) {
     try {
-      const query = `SELECT name, image_url, image_url_2, price_per_unit,unit, description FROM items`;
+      const query = `SELECT id, name, image_url, image_url_2, price_per_unit,unit, description FROM items`;
       const [items] = await pool.query(query);
       
       // Safely map items to include full image URLs
