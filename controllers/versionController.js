@@ -4,7 +4,7 @@ class VersionController {
     // Configuration
     static latestVersions = {
         ios: '1.0.0',
-        android: '1.3.0'
+        android: '1.4.0'
     };
 
     static storeUrls = {

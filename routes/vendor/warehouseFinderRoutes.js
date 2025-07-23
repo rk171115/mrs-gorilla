@@ -12,6 +12,9 @@ const WarehouseFinderController = require('../../controllers/Vendor/WarehouseFin
  */
 router.post('/find-warehouse-vendors', WarehouseFinderController.findWarehouseAndVendors);
 
+router.post('/find-nearest-vendors', WarehouseFinderController.findNearestVendor);
+
+
 /**
  * @route GET /api/warehouse-finder/warehouses
  * @desc Get all warehouses with their service areas (for debugging/admin)

@@ -7,6 +7,106 @@ class WarehouseFinderModel {
    * @param {number} lng - User's longitude
    * @returns {Promise<Object|null>} - Warehouse information or null if not found
    */
+
+// SIMPLEST APPROACH - Just get all vendors and calculate distance in JavaScript
+static async findNearestAvailableVendor(userLat, userLng) {
+  try {
+    // Get all available vendors
+    const query = `
+      SELECT id, vendor_id, latitude, longitude, status
+      FROM vendor_updates
+      WHERE status = 'available'
+    `;
+    
+
+
+const result = await pool.query(query);
+console.log('Result structure:', result);
+console.log('Vendors data:', result[0] || result);
+    const [vendors] = await pool.query(query);
+console.log('moghitn not hwre');
+console.log([vendors]);
+console.log('mohit here cool');
+    
+    if (vendors.length === 0) {
+      // Try busy vendors if no available ones
+      const busyQuery = `
+        SELECT id, vendor_id, latitude, longitude, status, inventory, session_id, created_at
+        FROM vendor_updates
+        WHERE status = 'busy'
+          AND latitude IS NOT NULL 
+          AND longitude IS NOT NULL
+      `;
+      const [busyVendors] = await pool.query(busyQuery);
+      if (busyVendors.length === 0) return null;
+      vendors = busyVendors;
+    }
+    
+    // Find nearest vendor using simple math
+    let nearest = null;
+    let minDistance = Infinity;
+    
+    for (const vendor of vendors) {
+      // Simple distance calculation (good enough for most cases)
+      const latDiff = userLat - vendor.latitude;
+      const lngDiff = userLng - vendor.longitude;
+      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = vendor;
+      }
+    }
+    
+    return nearest;
+    
+  } catch (error) {
+    console.error("Error finding nearest vendor:", error);
+    throw error;
+  }
+}
+  /**
+   * Calculate distance between two points using Haversine formula
+   * @param {number} lat1 - Latitude of point 1
+   * @param {number} lng1 - Longitude of point 1
+   * @param {number} lat2 - Latitude of point 2
+   * @param {number} lng2 - Longitude of point 2
+   * @returns {number} - Distance in kilometers
+   */
+  static calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    
+    return distance;
+  }
+
+  /**
+   * Convert degrees to radians
+   * @param {number} deg - Degrees
+   * @returns {number} - Radians
+   */
+  static deg2rad(deg) {
+    return deg * (Math.PI/180);
+  }
+
+
+
+
+
+
+
+
+
+
   static async findWarehouseByLocation(lat, lng) {
     try {
       const query = `

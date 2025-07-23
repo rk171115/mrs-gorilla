@@ -21,8 +21,8 @@ class CartModel {
 
       // Get only name and image_url of items matching the cart type
       const [items] = await pool.query(
-        'SELECT id, name, image_url, price_per_unit FROM items WHERE type = ?',
-        [cartType]
+        'SELECT id, name, image_url, price_per_unit FROM items',
+
       );
 
       return {

@@ -46,7 +46,6 @@ const versionRoutes = require('./routes/versionroutes');
 
 
 
-
 // Middleware
 
 
@@ -58,7 +57,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ✅ CORS Middleware (Move to Top)
 app.use(cors({
-  origin: "http://localhost:8000", // Your frontend URL
+  origin: "*", // Your frontend URL
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"]
@@ -94,7 +93,6 @@ app.use('/api/v1/warehouse-finder', warehouseFinderRoutes);
 app.use('/api/v1/smartOrders', smartOrderRoutes);
 app.use('/api/v1/orderStatus', orderStatusRoutes);
 app.use('/api/v1/version', versionRoutes);
-
 
 
 

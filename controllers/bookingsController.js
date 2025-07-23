@@ -97,6 +97,113 @@ class BookingsController {
       });
     }
   }
+
+
+
+
+static getFullImageUrl(relativePath) {
+    const BASE_URL = 'http://13.126.169.224';
+
+    // If no path or path is undefined, return null
+    if (!relativePath) return null;
+
+    // Ensure relativePath is a string and remove leading slash if present
+    const cleanPath = String(relativePath).replace(/^\//, '');
+
+    // Return full URL
+    return `${BASE_URL}/${cleanPath}`;
+  }
+
+
+static async getAllBookings(req, res) {
+    try {
+      // Query to get all bookings with user and item details
+      const query = `
+        SELECT 
+          bo.id as booking_id,
+          bo.address,
+          bo.total_price,
+          bo.booking_type,
+          bo.created_at,
+          u.full_name as username,
+          u.phone_number,
+          i.name as item_name,
+          bd.quantity,
+          bd.price_per_unit,
+          i.image_url,
+          i.image_url_2,
+          i.description,
+          i.unit
+        FROM booking_order bo
+        INNER JOIN users u ON bo.user_id = u.id
+        INNER JOIN booking_details bd ON bo.id = bd.booking_id
+        INNER JOIN items i ON bd.item_id = i.id
+        ORDER BY bo.created_at DESC
+      `;
+
+      const [results] = await pool.query(query);
+
+      // Check if any bookings exist
+      if (results.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No bookings found'
+        });
+      }
+
+      // Group results by booking_id to structure the response
+      const bookingsMap = {};
+      
+      results.forEach(row => {
+        if (!bookingsMap[row.booking_id]) {
+          bookingsMap[row.booking_id] = {
+            booking_id: row.booking_id,
+            username: row.username,
+            phone_number: row.phone_number,
+            address: row.address,
+            total_price: parseFloat(row.total_price),
+            booking_type: row.booking_type,
+            created_at: row.created_at,
+            items: []
+          };
+        }
+
+        // Add item to the booking
+        bookingsMap[row.booking_id].items.push({
+          name: row.item_name,
+          quantity: row.quantity,
+          price_per_unit: parseFloat(row.price_per_unit),
+          total_price: row.quantity * parseFloat(row.price_per_unit),
+          image_url: BookingsController.getFullImageUrl(row.image_url),
+          image_url_2: BookingsController.getFullImageUrl(row.image_url_2),
+          description: row.description,
+          unit: row.unit
+        });
+      });
+
+      // Convert to array and maintain order (latest first)
+      const bookings = Object.values(bookingsMap);
+
+      const response = {
+        success: true,
+        data: bookings
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      console.error('Error fetching all bookings:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  }
+
+
+
+
 }
 
 module.exports = BookingsController;
